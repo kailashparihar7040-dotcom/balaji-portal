@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BALAJI ENTERPRISES • Online Bisleri Order Portal</title>
+  <meta name="theme-color" content="#006B6B" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --primary: #006B6B;
+      --primary-dark: #004F4F;
+      --primary-soft: #E0F2F1;
+      --accent: #0277BD;
+      --accent-soft: #E1F5FE;
+      --success: #1B7F4B;
+      --success-soft: #E6F4EA;
+      --warning: #B45309;
+      --warning-soft: #FEF3C7;
+      --danger: #C62828;
+      --danger-soft: #FDECEA;
+      --bg: #F4F7F8;
+      --card: #FFFFFF;
+      --text: #102027;
+      --muted: #546E7A;
+      --border: #D9E2E6;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding-bottom: 92px;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #fff;
+      padding: 16px 16px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .topbar-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      margin: 0;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+
+    .auth-pill {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #fff;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tabs {
+      max-width: 720px;
+      margin: 12px auto 0;
+      padding: 0 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 11px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0, 107, 107, 0.25);
+    }
+
+    .badge-count {
+      background: #FFCA28;
+      color: #1A1A1A;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      padding: 1px 7px;
+      font-weight: 800;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 12px auto 0;
+      padding: 0 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(16, 32, 39, 0.04);
+    }
+
+    .store-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      text-decoration: none;
+    }
+
+    .chip.info {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .chip.success {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .chip.warning {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .chip.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .section-title {
+      font-size: 0.96rem;
+      font-weight: 800;
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sku-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #FCFDFE;
+    }
+
+    .sku-item.selected {
+      border-color: var(--primary);
+      background: #F2FAF9;
+    }
+
+    .sku-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sku-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .sku-price {
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: var(--primary-dark);
+      margin-top: 2px;
+    }
+
+    .sku-sub {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      border: 1.5px solid var(--primary);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .stepper button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .stepper button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .stepper input {
+      width: 46px;
+      height: 36px;
+      border: none;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 560px) {
+      .form-grid.two-col {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.94rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 107, 107, 0.12);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      padding: 4px 0;
+      color: var(--muted);
+    }
+
+    .summary-row.total {
+      border-top: 1px dashed var(--border);
+      margin-top: 6px;
+      padding-top: 8px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px 16px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 107, 107, 0.25);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-outline {
+      background: #fff;
+      color: var(--primary-dark);
+      border: 1.5px solid var(--primary);
+    }
+
+    .btn-sm {
+      padding: 9px 12px;
+      font-size: 0.83rem;
+      border-radius: 10px;
+      width: auto;
+    }
+
+    .sticky-checkout {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+      z-index: 30;
+    }
+
+    .sticky-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .live-banner {
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1.5px solid;
+    }
+
+    .live-banner.pending {
+      background: var(--warning-soft);
+      border-color: #F59E0B;
+      color: #78350F;
+    }
+
+    .live-banner.confirmed {
+      background: var(--accent-soft);
+      border-color: #0288D1;
+      color: #01579B;
+    }
+
+    .live-banner.delivered {
+      background: var(--success-soft);
+      border-color: #2E7D32;
+      color: #1B5E20;
+    }
+
+    .live-banner.rejected {
+      background: var(--danger-soft);
+      border-color: #E53935;
+      color: #7F1D1D;
+    }
+
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      position: relative;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .step-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      margin: 0 auto 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #E2E8F0;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .step.done {
+      color: var(--primary-dark);
+    }
+
+    .step.done .step-dot {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.86rem;
+      margin-bottom: 12px;
+    }
+
+    .alert-error {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid #F5C2C7;
+    }
+
+    .alert-info {
+      background: var(--accent-soft);
+      color: #01579B;
+      border: 1px solid #B3E5FC;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 230px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #e9f0f2;
+      margin-top: 10px;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .zone-banner {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      margin-top: 8px;
+      border: 1px solid;
+    }
+
+    .zone-banner.info {
+      background: var(--accent-soft);
+      border-color: #81D4FA;
+      color: #01579B;
+    }
+
+    .zone-banner.success {
+      background: var(--success-soft);
+      border-color: #A5D6A7;
+      color: #1B5E20;
+    }
+
+    .zone-banner.warning {
+      background: var(--warning-soft);
+      border-color: #FCD34D;
+      color: #78350F;
+    }
+
+    .zone-banner.danger {
+      background: var(--danger-soft);
+      border-color: #EF9A9A;
+      color: #7F1D1D;
+    }
+
+    .zone-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    /* Clean Print Invoice View */
+    #print-invoice {
+      display: none;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .topbar, .tabs, #catalog-view, #live-view, .sticky-checkout {
+        display: none !important;
+      }
+      #print-invoice {
+        display: block !important;
+        padding: 20px;
+        color: #000;
+        font-family: Arial, sans-serif;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      th, td {
+        border: 1px solid #ccc;
+        padding: 7px 8px;
+        text-align: left;
+        font-size: 12px;
+      }
+      th {
+        background: #f3f4f6;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-row">
+        <div>
+          <h1 class="brand-title" id="hdr-company">BALAJI ENTERPRISES</h1>
+          <div class="brand-sub" id="hdr-tagline">Direct Online Bisleri Order & Live Status Panel</div>
+        </div>
+        <button class="auth-pill" id="btn-auth" type="button">Sign in</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="main-tabs">
+    <button class="tab-btn active" id="tab-order" type="button">Order SKUs</button>
+    <button class="tab-btn" id="tab-live" type="button">
+      Live Confirmation Panel
+      <span class="badge-count hidden" id="live-count-badge">0</span>
+    </button>
+  </nav>
+
+  <main class="container">
+    <div id="global-alert" class="alert hidden"></div>
+
+    <!-- Distributor Code fallback when opened without ?d= -->
+    <section id="distributor-picker" class="card hidden">
+      <h2 class="section-title">Open Distributor Store</h2>
+      <p class="muted" style="margin-top:0">
+        Scan your Distributor's QR code or enter their Distributor Code below to load live Bisleri SKUs &amp; rates.
+      </p>
+      <div class="form-grid two-col">
+        <div>
+          <label for="manual-dist-input">Distributor Code</label>
+          <input type="text" id="manual-dist-input" placeholder="Paste Distributor UID" />
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-primary" id="btn-load-dist" type="button">Load SKUs</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: CATALOG & ORDER -->
+    <section id="catalog-view">
+      <div class="card" id="store-header-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800;font-size:1.05rem;" id="store-name">Loading Distributor Store...</div>
+            <div class="muted" id="store-address"></div>
+          </div>
+          <span class="chip success">Direct to Owner Dashboard</span>
+        </div>
+        <div class="store-meta" id="store-meta-chips"></div>
+      </div>
+
+      <!-- Delivery Location Map & Zone Check -->
+      <div class="card" id="map-zone-card">
+        <div class="section-title" style="margin-bottom:4px;">
+          <span>Delivery Map &amp; Distance Check</span>
+          <span class="chip info" id="distance-chip">Select Pin</span>
+        </div>
+        <div class="zone-pills" id="zone-rules-pills">
+          <span class="chip success">0–2 km: Min 5 CTN Free</span>
+          <span class="chip success">2–3 km: Min 10 CTN Free</span>
+          <span class="chip warning">3–5 km: Min 20 CTN Free</span>
+          <span class="chip info">5–7 km: Min 25 CTN (₹10/CTN)</span>
+          <span class="chip info">7–10 km: Min 50 CTN (₹10/CTN)</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="btn btn-primary btn-sm" id="btn-use-gps" type="button">📍 Use My GPS Location</button>
+          <button class="btn btn-outline btn-sm" id="btn-reset-pin" type="button">Center on Depot</button>
+        </div>
+        <div id="delivery-map" class="map-container"></div>
+        <div id="zone-status-banner" class="zone-banner info">
+          Tap the map or click <strong>Use My GPS Location</strong> to check your delivery zone.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <span>Bisleri Products &amp; Rates (GST Incl.)</span>
+          <span class="chip info" id="sku-count-chip">0 SKUs</span>
+        </div>
+        <div id="sku-list">
+          <p class="muted">Loading Bisleri SKUs...</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Customer &amp; Delivery Details</h2>
+        <div class="form-grid two-col">
+          <div>
+            <label for="inp-shop">Shop / Customer Name *</label>
+            <input type="text" id="inp-shop" placeholder="e.g. Mahalaxmi Kirana Store" maxlength="100" />
+          </div>
+          <div>
+            <label for="inp-phone">Mobile Number (10 digits) *</label>
+            <input type="tel" id="inp-phone" placeholder="e.g. 9876543210" maxlength="20" />
+          </div>
+          <div>
+            <label for="inp-owner">Contact Person Name</label>
+            <input type="text" id="inp-owner" placeholder="Your name" maxlength="80" />
+          </div>
+          <div>
+            <label for="inp-area">Area / Market</label>
+            <input type="text" id="inp-area" placeholder="e.g. Station Road" maxlength="80" />
+          </div>
+        </div>
+        <div class="form-grid" style="margin-top:10px;">
+          <div>
+            <label for="inp-address">Full Delivery Address</label>
+            <input type="text" id="inp-address" placeholder="Shop No, Building, Landmark" maxlength="200" />
+          </div>
+          <div>
+            <label for="inp-notes">Notes / Preferred Delivery Timing</label>
+            <textarea id="inp-notes" rows="2" placeholder="Optional note for owner (e.g. Morning delivery)" maxlength="300"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Order Summary (GST Included)</h2>
+        <div class="summary-row"><span>Selected Items</span><span id="sum-items">0</span></div>
+        <div class="summary-row"><span>Taxable Amount</span><span id="sum-subtotal">₹0.00</span></div>
+        <div class="summary-row"><span>SGST</span><span id="sum-sgst">₹0.00</span></div>
+        <div class="summary-row"><span>CGST</span><span id="sum-cgst">₹0.00</span></div>
+        <div class="summary-row hidden" id="sum-delivery-row">
+          <span id="sum-delivery-label">Delivery Charge</span>
+          <span id="sum-delivery">₹0.00</span>
+        </div>
+        <div class="summary-row total"><span>Grand Total</span><span id="sum-total">₹0.00</span></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: LIVE ORDER CONFIRMATION PANEL -->
+    <section id="live-view" class="hidden">
+      <div id="live-signin-card" class="card hidden">
+        <h2 class="section-title">View Your Live Order Status</h2>
+        <p class="muted">Sign in with your Google account to see real-time Owner confirmation, delivery slot &amp; GST invoice.</p>
+        <button class="btn btn-primary" id="btn-live-signin" type="button">Continue with Google</button>
+      </div>
+
+      <div id="live-panel-container"></div>
+    </section>
+  </main>
+
+  <div class="sticky-checkout" id="sticky-checkout">
+    <div class="sticky-inner">
+      <div style="min-width:0;">
+        <div style="font-size:0.75rem;color:var(--muted);font-weight:700;" id="bar-items-label">0 items selected</div>
+        <div style="font-size:1.08rem;font-weight:800;color:var(--primary-dark);" id="bar-total-label">₹0.00</div>
+        <div style="font-size:0.7rem;color:var(--warning);font-weight:700;" id="bar-zone-hint"></div>
+      </div>
+      <button class="btn btn-primary" style="width:auto;min-width:170px;" id="btn-submit-order" type="button" disabled>
+        Send Order to Owner
+      </button>
+    </div>
+  </div>
+
+  <!-- Printable GST Invoice Template -->
+  <div id="print-invoice"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      onSnapshot,
+      collection,
+      addDoc,
+      query,
+      where,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4MHzuE5Z5ZVtRFgUFCt27KeRtZMT0uvY",
+      authDomain: "gen-lang-client-0291240047.firebaseapp.com",
+      projectId: "gen-lang-client-0291240047",
+      storageBucket: "gen-lang-client-0291240047.firebasestorage.app",
+      messagingSenderId: "824927457494",
+      appId: "1:824927457494:web:balajiwebportal"
+    };
+
+    const NAMED_DB_ID = "ai-studio-android-balajien-beefdaa3-bada-44ac-b2f7-ed052ac1a597";
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app, NAMED_DB_ID);
+    const googleProvider = new GoogleAuthProvider();
+
+    // State
+    const urlParams = new URLSearchParams(window.location.search);
+    let distributorUid = (urlParams.get("d") || urlParams.get("distributor") || localStorage.getItem("balaji_last_dist") || "").trim();
+    let highlightOrderId = (urlParams.get("o") || urlParams.get("orderId") || "").trim();
+
+    const urlDlat = Number(urlParams.get("dlat") || 0) || 0;
+    const urlDlon = Number(urlParams.get("dlon") || 0) || 0;
+    const urlT0k = Number(urlParams.get("t0k") || 0) || 0;
+    const urlT0q = Number(urlParams.get("t0q") || 0) || 0;
+    const urlT1k = Number(urlParams.get("t1k") || 0) || 0;
+    const urlT1q = Number(urlParams.get("t1q") || 0) || 0;
+    const urlT2k = Number(urlParams.get("t2k") || 0) || 0;
+    const urlT2q = Number(urlParams.get("t2q") || 0) || 0;
+    const urlT3mk = Number(urlParams.get("t3mk") || 0) || 0;
+    const urlT3q = Number(urlParams.get("t3q") || 0) || 0;
+    const urlT3k = Number(urlParams.get("t3k") || 0) || 0;
+    const urlT4q = Number(urlParams.get("t4q") || 0) || 0;
+    const urlT3cRaw = urlParams.get("t3c");
+    const urlT3c = urlT3cRaw !== null && urlT3cRaw !== "" && !Number.isNaN(Number(urlT3cRaw)) ? Number(urlT3cRaw) : -1;
+
+    let storeData = null;
+    let qtyMap = {};
+    let customerLat = 0;
+    let customerLon = 0;
+    let mapInstance = null;
+    let customerMarker = null;
+    let depotLayerGroup = null;
+    let currentUser = null;
+    let myOrders = [];
+    let unsubStore = null;
+    let unsubOrders = null;
+    let pendingAutoSubmit = false;
+
+    // Elements
+    const elHdrCompany = document.getElementById("hdr-company");
+    const elHdrTagline = document.getElementById("hdr-tagline");
+    const elBtnAuth = document.getElementById("btn-auth");
+    const elTabOrder = document.getElementById("tab-order");
+    const elTabLive = document.getElementById("tab-live");
+    const elLiveBadge = document.getElementById("live-count-badge");
+    const elGlobalAlert = document.getElementById("global-alert");
+    const elDistPicker = document.getElementById("distributor-picker");
+    const elCatalogView = document.getElementById("catalog-view");
+    const elLiveView = document.getElementById("live-view");
+    const elStickyCheckout = document.getElementById("sticky-checkout");
+    const elSkuList = document.getElementById("sku-list");
+    const elBtnSubmit = document.getElementById("btn-submit-order");
+
+    const inpShop = document.getElementById("inp-shop");
+    const inpPhone = document.getElementById("inp-phone");
+    const inpOwner = document.getElementById("inp-owner");
+    const inpArea = document.getElementById("inp-area");
+    const inpAddress = document.getElementById("inp-address");
+    const inpNotes = document.getElementById("inp-notes");
+
+    function showAlert(msg, type = "error") {
+      elGlobalAlert.textContent = msg;
+      elGlobalAlert.className = `alert ${type === "info" ? "alert-info" : "alert-error"}`;
+      elGlobalAlert.classList.remove("hidden");
+    }
+
+    function clearAlert() {
+      elGlobalAlert.classList.add("hidden");
+      elGlobalAlert.textContent = "";
+    }
+
+    function formatInr(val) {
+      const n = Number(val) || 0;
+      return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function esc(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function computeGstIncludedBreakdown(enteredRate, gstPercent) {
+      const rate = Math.max(0, Number(enteredRate) || 0);
+      const gst = Math.min(28, Math.max(0, Number(gstPercent) || 0));
+      const taxable = gst > 0 ? rate / (1 + gst / 100) : rate;
+      return { taxable, gst };
+    }
+
+    function getDeliveryConfig() {
+      const storeLat = Number(storeData?.depotLatitude || 0) || 0;
+      const storeLon = Number(storeData?.depotLongitude || 0) || 0;
+      const dlat = (storeLat !== 0 || storeLon !== 0) ? storeLat : urlDlat;
+      const dlon = (storeLat !== 0 || storeLon !== 0) ? storeLon : urlDlon;
+      const hasDepot = dlat !== 0 || dlon !== 0;
+
+      const t0k = Number(storeData?.tier0MaxKm || 0) || urlT0k || 2;
+      const t0q = Number(storeData?.tier0MinQty || 0) || urlT0q || 5;
+      const t1k = Number(storeData?.tier1MaxKm || 0) || urlT1k || 3;
+      const t1q = Number(storeData?.tier1MinQty || 0) || urlT1q || 10;
+      const t2k = Number(storeData?.tier2MaxKm || 0) || urlT2k || 5;
+      const t2q = Number(storeData?.tier2MinQty || 0) || urlT2q || 20;
+      const t3mk = Number(storeData?.tier3MidKm || 0) || urlT3mk || 7;
+      const t3q = Number(storeData?.tier3MinQty || 0) || urlT3q || 25;
+      const t3k = Number(storeData?.tier3MaxKm || 0) || urlT3k || 10;
+      const t4q = Number(storeData?.tier4MinQty || 0) || urlT4q || 50;
+      const rawC = storeData?.tier3ChargePerCtn;
+      const t3c = (typeof rawC === "number" && !Number.isNaN(rawC)) ? rawC : (urlT3c >= 0 ? urlT3c : 10);
+      return { dlat, dlon, hasDepot, t0k, t0q, t1k, t1q, t2k, t2q, t3mk, t3q, t3k, t4q, t3c };
+    }
+
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const toRad = (d) => (d * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function evaluateDeliveryZoneWeb(totalCartons) {
+      const cfg = getDeliveryConfig();
+      const hasPin = customerLat !== 0 || customerLon !== 0;
+      const distanceKm = (cfg.hasDepot && hasPin)
+        ? calculateDistanceKm(cfg.dlat, cfg.dlon, customerLat, customerLon)
+        : null;
+
+      if (!cfg.hasDepot) {
+        return {
+          cfg,
+          hasPin,
+          distanceKm,
+          tone: "info",
+          chipText: hasPin ? "Pin Set" : "Standard",
+          minRequiredQty: 1,
+          chargePerCtn: 0,
+          deliveryChargeTotal: 0,
+          outOfRange: false,
+          canSubmit: totalCartons >= 1,
+          shortHint: "",
+          message: "Distributor Depot GPS not configured yet — standard order accepted."
+        };
+      }
+
+      if (distanceKm === null) {
+        return {
+          cfg,
+          hasPin: false,
+          distanceKm: null,
+          tone: "info",
+          chipText: "Pin Required",
+          minRequiredQty: cfg.t0q,
+          chargePerCtn: 0,
+          deliveryChargeTotal: 0,
+          outOfRange: false,
+          canSubmit: false,
+          shortHint: "Tap Map or GPS to check delivery distance",
+          message: `Tap Map or Use My GPS to check delivery rule (0–${cfg.t0k}km min ${cfg.t0q} CTN Free, ${cfg.t0k}–${cfg.t1k}km min ${cfg.t1q} CTN Free, ${cfg.t1k}–${cfg.t2k}km min ${cfg.t2q} CTN Free, ${cfg.t2k}–${cfg.t3mk}km min ${cfg.t3q} CTN ₹${cfg.t3c}/CTN, ${cfg.t3mk}–${cfg.t3k}km min ${cfg.t4q} CTN ₹${cfg.t3c}/CTN).`
+        };
+      }
+
+      const dLabel = distanceKm.toFixed(1) + " km";
+      if (distanceKm <= cfg.t0k) {
+        const met = totalCartons >= cfg.t0q;
+        const shortBy = Math.max(0, cfg.t0q - totalCartons);
+        return {
+          cfg,
+          hasPin: true,
+          distanceKm,
+          tone: met ? "success" : "warning",
+          chipText: `${dLabel} • Free`,
+          minRequiredQty: cfg.t0q,
+          chargePerCtn: 0,
+          deliveryChargeTotal: 0,
+          outOfRange: false,
+          canSubmit: met && totalCartons > 0,
+          shortHint: met ? `Free Delivery (${dLabel})` : `Add ${shortBy} more CTN (Min ${cfg.t0q} CTN Free)`,
+          message: met
+            ? `Distance ${dLabel} (0–${cfg.t0k} km Zone): Eligible for Free Delivery!`
+            : `Distance ${dLabel} (0–${cfg.t0k} km Zone): Minimum ${cfg.t0q} CTN required for Free Delivery. Add ${shortBy} more CTN.`
+        };
+      }
+
+      if (distanceKm <= cfg.t1k) {
+        const met = totalCartons >= cfg.t1q;
+        const shortBy = Math.max(0, cfg.t1q - totalCartons);
+        return {
+          cfg,
+          hasPin: true,
+          distanceKm,
+          tone: met ? "success" : "warning",
+          chipText: `${dLabel} • Free`,
+          minRequiredQty: cfg.t1q,
+          chargePerCtn: 0,
+          deliveryChargeTotal: 0,
+          outOfRange: false,
+          canSubmit: met && totalCartons > 0,
+          shortHint: met ? `Free Delivery (${dLabel})` : `Add ${shortBy} more CTN (Min ${cfg.t1q} CTN Free)`,
+          message: met
+            ? `Distance ${dLabel} (${cfg.t0k}–${cfg.t1k} km Zone): Eligible for Free Delivery!`
+            : `Distance ${dLabel} (${cfg.t0k}–${cfg.t1k} km Zone): Minimum ${cfg.t1q} CTN required for Free Delivery. Add ${shortBy} more CTN.`
+        };
+      }
+
+      if (distanceKm <= cfg.t2k) {
+        const met = totalCartons >= cfg.t2q;
+        const shortBy = Math.max(0, cfg.t2q - totalCartons);
+        return {
+          cfg,
+          hasPin: true,
+          distanceKm,
+          tone: met ? "success" : "warning",
+          chipText: `${dLabel} • Free`,
+          minRequiredQty: cfg.t2q,
+          chargePerCtn: 0,
+          deliveryChargeTotal: 0,
+          outOfRange: false,
+          canSubmit: met && totalCartons > 0,
+          shortHint: met ? `Free Delivery (${dLabel})` : `Add ${shortBy} more CTN (Min ${cfg.t2q} CTN Free)`,
+          message: met
+            ? `Distance ${dLabel} (${cfg.t1k}–${cfg.t2k} km Zone): Eligible for Free Delivery!`
+            : `Distance ${dLabel} (${cfg.t1k}–${cfg.t2k} km Zone): Minimum ${cfg.t2q} CTN required for Free Delivery. Add ${shortBy} more CTN.`
+        };
+      }
+
+      if (distanceKm <= cfg.t3mk) {
+        const met = totalCartons >= cfg.t3q;
+        const shortBy = Math.max(0, cfg.t3q - totalCartons);
+        const charge = totalCartons * cfg.t3c;
+        return {
+          cfg,
+          hasPin: true,
+          distanceKm,
+          tone: met ? "info" : "warning",
+          chipText: `${dLabel} • ₹${cfg.t3c}/CTN`,
+          minRequiredQty: cfg.t3q,
+          chargePerCtn: cfg.t3c,
+          deliveryChargeTotal: charge,
+          outOfRange: false,
+          canSubmit: met && totalCartons > 0,
+          shortHint: met
+            ? `+₹${charge.toFixed(0)} delivery (${dLabel})`
+            : `Add ${shortBy} more CTN (Min ${cfg.t3q} CTN • ₹${cfg.t3c}/CTN)`,
+          message: met
+            ? `Distance ${dLabel} (${cfg.t2k}–${cfg.t3mk} km Zone): Min ${cfg.t3q} CTN met! Delivery charge ₹${cfg.t3c} × ${totalCartons} CTN = ${formatInr(charge)}.`
+            : `Distance ${dLabel} (${cfg.t2k}–${cfg.t3mk} km Zone): Minimum ${cfg.t3q} CTN required (₹${cfg.t3c}/CTN). Add ${shortBy} more CTN.`
+        };
+      }
+
+      if (distanceKm <= cfg.t3k) {
+        const met = totalCartons >= cfg.t4q;
+        const shortBy = Math.max(0, cfg.t4q - totalCartons);
+        const charge = totalCartons * cfg.t3c;
+        return {
+          cfg,
+          hasPin: true,
+          distanceKm,
+          tone: met ? "info" : "warning",
+          chipText: `${dLabel} • ₹${cfg.t3c}/CTN`,
+          minRequiredQty: cfg.t4q,
+          chargePerCtn: cfg.t3c,
+          deliveryChargeTotal: charge,
+          outOfRange: false,
+          canSubmit: met && totalCartons > 0,
+          shortHint: met
+            ? `+₹${charge.toFixed(0)} delivery (${dLabel})`
+            : `Add ${shortBy} more CTN (Min ${cfg.t4q} CTN • ₹${cfg.t3c}/CTN)`,
+          message: met
+            ? `Distance ${dLabel} (${cfg.t3mk}–${cfg.t3k} km Zone): Min ${cfg.t4q} CTN met! Delivery charge ₹${cfg.t3c} × ${totalCartons} CTN = ${formatInr(charge)}.`
+            : `Distance ${dLabel} (${cfg.t3mk}–${cfg.t3k} km Zone): Minimum ${cfg.t4q} CTN required (₹${cfg.t3c}/CTN). Add ${shortBy} more CTN.`
+        };
+      }
+
+      return {
+        cfg,
+        hasPin: true,
+        distanceKm,
+        tone: "danger",
+        chipText: `${dLabel} • Out of Range`,
+        minRequiredQty: 1,
+        chargePerCtn: 0,
+        deliveryChargeTotal: 0,
+        outOfRange: true,
+        canSubmit: false,
+        shortHint: `Outside ${cfg.t3k} km delivery range`,
+        message: `Distance is ${dLabel}. Delivery is available up to ${cfg.t3k} km only — please call Owner.`
+      };
+    }
+
+    function setCustomerPin(lat, lon, panToPin = false) {
+      customerLat = Number(lat) || 0;
+      customerLon = Number(lon) || 0;
+      saveCustomerProfile();
+      if (mapInstance && typeof window.L !== "undefined" && (customerLat !== 0 || customerLon !== 0)) {
+        if (!customerMarker) {
+          customerMarker = window.L.marker([customerLat, customerLon], { draggable: true }).addTo(mapInstance);
+          customerMarker.bindPopup("Your Delivery Location");
+          customerMarker.on("dragend", () => {
+            const pos = customerMarker.getLatLng();
+            setCustomerPin(pos.lat, pos.lng, false);
+          });
+        } else {
+          customerMarker.setLatLng([customerLat, customerLon]);
+        }
+        if (panToPin) {
+          mapInstance.setView([customerLat, customerLon], 14);
+        }
+      }
+      updateTotalsUI();
+    }
+
+    function initOrUpdateMap() {
+      const cfg = getDeliveryConfig();
+      const pillsEl = document.getElementById("zone-rules-pills");
+      if (pillsEl) {
+        pillsEl.innerHTML = `
+          <span class="chip success">0–${cfg.t0k} km: Min ${cfg.t0q} CTN Free</span>
+          <span class="chip success">${cfg.t0k}–${cfg.t1k} km: Min ${cfg.t1q} CTN Free</span>
+          <span class="chip warning">${cfg.t1k}–${cfg.t2k} km: Min ${cfg.t2q} CTN Free</span>
+          <span class="chip info">${cfg.t2k}–${cfg.t3mk} km: Min ${cfg.t3q} CTN (₹${cfg.t3c}/CTN)</span>
+          <span class="chip info">${cfg.t3mk}–${cfg.t3k} km: Min ${cfg.t4q} CTN (₹${cfg.t3c}/CTN)</span>
+        `;
+      }
+
+      const mapEl = document.getElementById("delivery-map");
+      if (!mapEl) return;
+
+      if (typeof window.L === "undefined") {
+        mapEl.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:0.84rem;">Map preview unavailable offline. Use <strong>Use My GPS Location</strong> button above to verify distance.</div>`;
+        return;
+      }
+
+      const centerLat = (customerLat !== 0 || customerLon !== 0)
+        ? customerLat
+        : (cfg.hasDepot ? cfg.dlat : 26.9124);
+      const centerLon = (customerLat !== 0 || customerLon !== 0)
+        ? customerLon
+        : (cfg.hasDepot ? cfg.dlon : 75.7873);
+
+      if (!mapInstance) {
+        mapEl.innerHTML = "";
+        mapInstance = window.L.map("delivery-map").setView([centerLat, centerLon], 12);
+        window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap"
+        }).addTo(mapInstance);
+        depotLayerGroup = window.L.layerGroup().addTo(mapInstance);
+
+        mapInstance.on("click", (e) => {
+          setCustomerPin(e.latlng.lat, e.latlng.lng, false);
+        });
+      }
+
+      if (depotLayerGroup) {
+        depotLayerGroup.clearLayers();
+        if (cfg.hasDepot) {
+          window.L.circleMarker([cfg.dlat, cfg.dlon], {
+            radius: 8,
+            color: "#004F4F",
+            fillColor: "#006B6B",
+            fillOpacity: 1
+          }).addTo(depotLayerGroup).bindTooltip("Distributor Depot");
+          window.L.circle([cfg.dlat, cfg.dlon], { radius: cfg.t0k * 1000, color: "#0F766E", fillOpacity: 0.08, weight: 1.5, dashArray: "3 3" }).addTo(depotLayerGroup);
+          window.L.circle([cfg.dlat, cfg.dlon], { radius: cfg.t1k * 1000, color: "#1B7F4B", fillOpacity: 0.06, weight: 1.5, dashArray: "4 4" }).addTo(depotLayerGroup);
+          window.L.circle([cfg.dlat, cfg.dlon], { radius: cfg.t2k * 1000, color: "#B45309", fillOpacity: 0.04, weight: 1.5, dashArray: "4 4" }).addTo(depotLayerGroup);
+          window.L.circle([cfg.dlat, cfg.dlon], { radius: cfg.t3mk * 1000, color: "#7C3AED", fillOpacity: 0.03, weight: 1.5, dashArray: "4 4" }).addTo(depotLayerGroup);
+          window.L.circle([cfg.dlat, cfg.dlon], { radius: cfg.t3k * 1000, color: "#0277BD", fillOpacity: 0.03, weight: 1.5 }).addTo(depotLayerGroup);
+          if (customerLat === 0 && customerLon === 0) {
+            mapInstance.setView([cfg.dlat, cfg.dlon], 12);
+          }
+        }
+      }
+
+      if (customerLat !== 0 || customerLon !== 0) {
+        setCustomerPin(customerLat, customerLon, false);
+      }
+      setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
+    }
+
+    document.getElementById("btn-use-gps").addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        showAlert("GPS is not supported in this browser. Tap anywhere on the map to place your pin.");
+        return;
+      }
+      const btn = document.getElementById("btn-use-gps");
+      btn.disabled = true;
+      btn.textContent = "Detecting GPS...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          btn.disabled = false;
+          btn.textContent = "📍 Use My GPS Location";
+          setCustomerPin(pos.coords.latitude, pos.coords.longitude, true);
+        },
+        (err) => {
+          btn.disabled = false;
+          btn.textContent = "📍 Use My GPS Location";
+          showAlert("Location access failed (" + err.message + "). Please allow Location or tap directly on the map.");
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+      );
+    });
+
+    document.getElementById("btn-reset-pin").addEventListener("click", () => {
+      const cfg = getDeliveryConfig();
+      if (mapInstance && cfg.hasDepot) {
+        mapInstance.setView([cfg.dlat, cfg.dlon], 12);
+      } else {
+        showAlert("Depot coordinates not set yet.");
+      }
+    });
+
+    function restoreSavedProfile() {
+      try {
+        const draft = JSON.parse(sessionStorage.getItem("balaji_draft_order") || "null");
+        if (draft) {
+          if (draft.distributorUid && !distributorUid) distributorUid = draft.distributorUid;
+          if (draft.qtyMap) qtyMap = draft.qtyMap;
+          if (draft.shop) inpShop.value = draft.shop;
+          if (draft.phone) inpPhone.value = draft.phone;
+          if (draft.owner) inpOwner.value = draft.owner;
+          if (draft.area) inpArea.value = draft.area;
+          if (draft.address) inpAddress.value = draft.address;
+          if (draft.notes) inpNotes.value = draft.notes;
+          if (draft.customerLat) customerLat = Number(draft.customerLat) || 0;
+          if (draft.customerLon) customerLon = Number(draft.customerLon) || 0;
+          pendingAutoSubmit = Boolean(draft.autoSubmit);
+          sessionStorage.removeItem("balaji_draft_order");
+          return;
+        }
+        const saved = JSON.parse(localStorage.getItem("balaji_customer_profile") || "null");
+        if (saved) {
+          if (saved.shop) inpShop.value = saved.shop;
+          if (saved.phone) inpPhone.value = saved.phone;
+          if (saved.owner) inpOwner.value = saved.owner;
+          if (saved.area) inpArea.value = saved.area;
+          if (saved.address) inpAddress.value = saved.address;
+          if (saved.customerLat) customerLat = Number(saved.customerLat) || 0;
+          if (saved.customerLon) customerLon = Number(saved.customerLon) || 0;
+        }
+      } catch (_) {}
+    }
+
+    function saveCustomerProfile() {
+      try {
+        localStorage.setItem("balaji_customer_profile", JSON.stringify({
+          shop: inpShop.value.trim(),
+          phone: inpPhone.value.trim(),
+          owner: inpOwner.value.trim(),
+          area: inpArea.value.trim(),
+          address: inpAddress.value.trim(),
+          customerLat,
+          customerLon
+        }));
+      } catch (_) {}
+    }
+
+    function saveDraftForRedirect(autoSubmit) {
+      try {
+        sessionStorage.setItem("balaji_draft_order", JSON.stringify({
+          distributorUid,
+          qtyMap,
+          customerLat,
+          customerLon,
+          shop: inpShop.value,
+          phone: inpPhone.value,
+          owner: inpOwner.value,
+          area: inpArea.value,
+          address: inpAddress.value,
+          notes: inpNotes.value,
+          autoSubmit
+        }));
+      } catch (_) {}
+    }
+
+    function switchTab(tab) {
+      if (tab === "live") {
+        elTabLive.classList.add("active");
+        elTabOrder.classList.remove("active");
+        elLiveView.classList.remove("hidden");
+        elCatalogView.classList.add("hidden");
+        elStickyCheckout.classList.add("hidden");
+      } else {
+        elTabOrder.classList.add("active");
+        elTabLive.classList.remove("active");
+        elCatalogView.classList.remove("hidden");
+        elLiveView.classList.add("hidden");
+        elStickyCheckout.classList.remove("hidden");
+        setTimeout(() => mapInstance && mapInstance.invalidateSize(), 150);
+      }
+    }
+
+    elTabOrder.addEventListener("click", () => switchTab("order"));
+    elTabLive.addEventListener("click", () => switchTab("live"));
+
+    async function triggerGoogleSignIn(autoSubmitAfter = false) {
+      clearAlert();
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        return result.user;
+      } catch (err) {
+        const code = err?.code || "";
+        if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+          saveDraftForRedirect(autoSubmitAfter);
+          await signInWithRedirect(auth, googleProvider);
+          return null;
+        }
+        if (code === "auth/unauthorized-domain") {
+          showAlert("Google Sign-In domain not authorized yet. Open Firebase Console -> Authentication -> Settings -> Authorized domains and add " + window.location.hostname);
+        } else if (code !== "auth/popup-closed-by-user") {
+          showAlert("Google Sign-In error: " + (err.message || code));
+        }
+        return null;
+      }
+    }
+
+    elBtnAuth.addEventListener("click", async () => {
+      if (currentUser) {
+        await signOut(auth);
+      } else {
+        await triggerGoogleSignIn(false);
+      }
+    });
+
+    document.getElementById("btn-live-signin").addEventListener("click", () => triggerGoogleSignIn(false));
+
+    document.getElementById("btn-load-dist").addEventListener("click", () => {
+      const code = document.getElementById("manual-dist-input").value.trim();
+      if (code.length < 6) {
+        showAlert("Please enter a valid Distributor Code.");
+        return;
+      }
+      distributorUid = code;
+      localStorage.setItem("balaji_last_dist", distributorUid);
+      const url = new URL(window.location.href);
+      url.searchParams.set("d", distributorUid);
+      window.history.replaceState({}, "", url.toString());
+      elDistPicker.classList.add("hidden");
+      subscribeStore();
+      subscribeMyOrders();
+    });
+
+    function computeOrderItems() {
+      const rawProducts = Array.isArray(storeData?.products) ? storeData.products : [];
+      const products = rawProducts.filter((p) => p && p.inStock !== false);
+      const items = [];
+      for (const prod of products) {
+        const q = Math.max(0, Math.floor(Number(qtyMap[prod.productId] || 0)));
+        if (q > 0) {
+          const { taxable, gst } = computeGstIncludedBreakdown(prod.pricePerUnit, prod.gstPercent);
+          const base = q * taxable;
+          const tax = base * (gst / 100);
+          items.push({
+            productId: String(prod.productId || ""),
+            productName: String(prod.name || "Product").slice(0, 100),
+            unitLabel: String(prod.unitLabel || "Case").slice(0, 40),
+            qty: q,
+            rate: Number(taxable.toFixed(4)),
+            gstPercent: gst,
+            lineTotal: Number((base + tax).toFixed(2)),
+            displayUnitPrice: Number(prod.pricePerUnit || 0)
+          });
+        }
+      }
+      return items;
+    }
+
+    function updateTotalsUI() {
+      const items = computeOrderItems();
+      const totalQty = items.reduce((acc, it) => acc + it.qty, 0);
+      const subtotal = items.reduce((acc, it) => acc + (it.qty * it.rate), 0);
+      const gstAmt = items.reduce((acc, it) => acc + (it.qty * it.rate * (it.gstPercent / 100)), 0);
+      const zoneEval = evaluateDeliveryZoneWeb(totalQty);
+      const deliveryCharge = zoneEval.deliveryChargeTotal;
+      const total = subtotal + gstAmt + deliveryCharge;
+
+      document.getElementById("sum-items").textContent = `${items.length} SKU (${totalQty} CTN)`;
+      document.getElementById("sum-subtotal").textContent = formatInr(subtotal);
+      document.getElementById("sum-sgst").textContent = formatInr(gstAmt / 2);
+      document.getElementById("sum-cgst").textContent = formatInr(gstAmt / 2);
+
+      const delRow = document.getElementById("sum-delivery-row");
+      const delLabel = document.getElementById("sum-delivery-label");
+      const delVal = document.getElementById("sum-delivery");
+      if (zoneEval.cfg.hasDepot && (deliveryCharge > 0 || (zoneEval.hasPin && !zoneEval.outOfRange))) {
+        delRow.classList.remove("hidden");
+        delLabel.textContent = deliveryCharge > 0
+          ? `Delivery Charge (${totalQty} CTN × ₹${zoneEval.cfg.t3c})`
+          : `Delivery (${zoneEval.distanceKm.toFixed(1)} km)`;
+        delVal.textContent = deliveryCharge > 0 ? formatInr(deliveryCharge) : "FREE";
+        delVal.style.color = deliveryCharge > 0 ? "var(--accent)" : "var(--success)";
+        delVal.style.fontWeight = "800";
+      } else {
+        delRow.classList.add("hidden");
+      }
+
+      document.getElementById("sum-total").textContent = formatInr(total);
+
+      const distChip = document.getElementById("distance-chip");
+      if (distChip) {
+        distChip.textContent = zoneEval.chipText;
+        distChip.className = `chip ${zoneEval.tone}`;
+      }
+      const zoneBanner = document.getElementById("zone-status-banner");
+      if (zoneBanner) {
+        zoneBanner.textContent = zoneEval.message;
+        zoneBanner.className = `zone-banner ${zoneEval.tone}`;
+      }
+
+      document.getElementById("bar-items-label").textContent = `${totalQty} CTN selected`;
+      document.getElementById("bar-total-label").textContent = formatInr(total);
+      const hintEl = document.getElementById("bar-zone-hint");
+      if (hintEl) {
+        hintEl.textContent = zoneEval.shortHint || "";
+        hintEl.style.color = zoneEval.tone === "success"
+          ? "var(--success)"
+          : zoneEval.tone === "danger"
+          ? "var(--danger)"
+          : zoneEval.tone === "warning"
+          ? "var(--warning)"
+          : "var(--accent)";
+      }
+      elBtnSubmit.disabled = items.length === 0 || !zoneEval.canSubmit;
+    }
+
+    function renderCatalog() {
+      const rawProducts = Array.isArray(storeData?.products) ? storeData.products : [];
+      const products = rawProducts.filter((p) => p && p.inStock !== false);
+      document.getElementById("sku-count-chip").textContent = `${products.length} SKUs`;
+
+      if (products.length === 0) {
+        elSkuList.innerHTML = `<p class="muted">No products currently in stock. Available items will appear here automatically.</p>`;
+        updateTotalsUI();
+        return;
+      }
+
+      elSkuList.innerHTML = products.map((prod) => {
+        const pid = String(prod.productId);
+        const qty = Math.max(0, Math.floor(Number(qtyMap[pid] || 0)));
+        const { taxable } = computeGstIncludedBreakdown(prod.pricePerUnit, prod.gstPercent);
+        const gst = Number(prod.gstPercent || 0);
+        return `
+          <div class="sku-item ${qty > 0 ? "selected" : ""}" data-pid="${esc(pid)}">
+            <div class="sku-info">
+              <div class="sku-name">${esc(prod.name)}</div>
+              <div class="sku-price">${formatInr(prod.pricePerUnit)} / ${esc(prod.unitLabel || "Case")}</div>
+              <div class="sku-sub">
+                Base ${formatInr(taxable)} + ${gst}% GST Incl.
+              </div>
+            </div>
+            <div class="stepper">
+              <button type="button" class="btn-dec" data-pid="${esc(pid)}" ${qty <= 0 ? "disabled" : ""}>−</button>
+              <input type="number" min="0" max="999" class="inp-qty" data-pid="${esc(pid)}" value="${qty}" />
+              <button type="button" class="btn-inc" data-pid="${esc(pid)}">+</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      elSkuList.querySelectorAll(".btn-dec").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const pid = btn.dataset.pid;
+          qtyMap[pid] = Math.max(0, Number(qtyMap[pid] || 0) - 1);
+          renderCatalog();
+        });
+      });
+
+      elSkuList.querySelectorAll(".btn-inc").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const pid = btn.dataset.pid;
+          qtyMap[pid] = Math.min(999, Number(qtyMap[pid] || 0) + 1);
+          renderCatalog();
+        });
+      });
+
+      elSkuList.querySelectorAll(".inp-qty").forEach((inp) => {
+        inp.addEventListener("change", () => {
+          const pid = inp.dataset.pid;
+          const v = Math.max(0, Math.min(999, Math.floor(Number(inp.value) || 0)));
+          qtyMap[pid] = v;
+          renderCatalog();
+        });
+      });
+
+      updateTotalsUI();
+    }
+
+    function applyStoreHeader(data) {
+      const company = data.companyName || "BALAJI ENTERPRISES";
+      const tagline = data.tagline || "Authorized Bisleri Distributor";
+      document.title = `${company} • Order Bisleri Online`;
+      elHdrCompany.textContent = company;
+      elHdrTagline.textContent = tagline;
+      document.getElementById("store-name").textContent = company;
+      document.getElementById("store-address").textContent = data.address || "";
+
+      const chips = [];
+      if (data.phone) chips.push(`<a class="chip" href="tel:${esc(data.phone)}">Call: ${esc(data.phone)}</a>`);
+      if (data.gstin) chips.push(`<span class="chip info">GSTIN: ${esc(data.gstin)}</span>`);
+      document.getElementById("store-meta-chips").innerHTML = chips.join("");
+    }
+
+    function subscribeStore() {
+      if (unsubStore) {
+        unsubStore();
+        unsubStore = null;
+      }
+      if (!distributorUid) {
+        elDistPicker.classList.remove("hidden");
+        document.getElementById("store-name").textContent = "Enter Distributor Code Above";
+        elSkuList.innerHTML = `<p class="muted">Waiting for Distributor Code or QR scan.</p>`;
+        return;
+      }
+
+      localStorage.setItem("balaji_last_dist", distributorUid);
+      const storeRef = doc(db, "public_stores", distributorUid);
+
+      unsubStore = onSnapshot(storeRef, (snap) => {
+        clearAlert();
+        if (!snap.exists()) {
+          storeData = null;
+          document.getElementById("store-name").textContent = "Store Not Synced Yet";
+          elSkuList.innerHTML = `<p class="muted">Ask your Distributor Owner to open the Balaji app once so their SKU catalog syncs.</p>`;
+          renderCatalog();
+          return;
+        }
+        storeData = snap.data();
+        applyStoreHeader(storeData);
+        initOrUpdateMap();
+        renderCatalog();
+      }, (err) => {
+        showAlert("Could not load distributor SKUs: " + err.message);
+      });
+    }
+
+    function renderStatusTimeline(status) {
+      const s1Done = true;
+      const s2Done = status === "CONFIRMED" || status === "DELIVERED";
+      const s3Done = status === "DELIVERED";
+      if (status === "REJECTED") {
+        return `<div class="muted" style="color:var(--danger);font-weight:700;">Declined by Owner</div>`;
+      }
+      return `
+        <div class="timeline">
+          <div class="step ${s1Done ? "done" : ""}">
+            <div class="step-dot">1</div>Sent to Owner
+          </div>
+          <div class="step ${s2Done ? "done" : ""}">
+            <div class="step-dot">2</div>Owner Confirmed
+          </div>
+          <div class="step ${s3Done ? "done" : ""}">
+            <div class="step-dot">3</div>Delivered &amp; Bill
+          </div>
+        </div>
+      `;
+    }
+
+    function buildUpiPayUrl(order) {
+      const upiId = (storeData?.upiId || "").trim();
+      if (!upiId) return "";
+      const pn = encodeURIComponent(storeData?.upiMerchantName || storeData?.companyName || "BALAJI ENTERPRISES");
+      const am = Number(order.totalAmount || 0).toFixed(2);
+      const tn = encodeURIComponent(`${order.linkedInvoiceNumber || "Order"} ${order.shopName}`);
+      return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${pn}&am=${am}&cu=INR&tn=${tn}`;
+    }
+
+    function openPrintInvoice(order) {
+      const company = storeData?.companyName || "BALAJI ENTERPRISES";
+      const invNo = order.linkedInvoiceNumber || `ONLINE-${String(order.id).slice(-5).toUpperCase()}`;
+      const rows = (order.items || []).map((it, idx) => {
+        const taxableAmt = Number(it.qty || 0) * Number(it.rate || 0);
+        return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${esc(it.productName)} (${esc(it.unitLabel)})</td>
+          <td style="text-align:right">${it.qty}</td>
+          <td style="text-align:right">${formatInr(it.rate)}</td>
+          <td style="text-align:right">${formatInr(taxableAmt)}</td>
+        </tr>
+      `;
+      }).join("");
+
+      const gstAmt = Number(order.gstAmount || 0);
+      const halfGst = gstAmt / 2;
+      const dtStr = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleString("en-IN") : new Date().toLocaleString("en-IN");
+
+      document.getElementById("print-invoice").innerHTML = `
+        <div style="border:2px solid #000;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #999;padding-bottom:10px;">
+            <div>
+              <h2 style="margin:0;">${esc(company)}</h2>
+              <div>${esc(storeData?.tagline || "Authorized Bisleri Distributor")}</div>
+              <div>${esc(storeData?.address || "")}</div>
+              <div>Ph: ${esc(storeData?.phone || "-")} | GSTIN: ${esc(storeData?.gstin || "N/A")}</div>
+            </div>
+            <div style="text-align:right;">
+              <h3 style="margin:0;">TAX INVOICE</h3>
+              <div><strong>No:</strong> ${esc(invNo)}</div>
+              <div><strong>Date:</strong> ${esc(dtStr)}</div>
+              <div><strong>Status:</strong> ${esc(order.status)}</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <strong>Bill To:</strong> ${esc(order.shopName)} ${order.customerName ? `(${esc(order.customerName)})` : ""}<br/>
+            <strong>Phone:</strong> ${esc(order.customerPhone)} | <strong>Area:</strong> ${esc(order.area || "-")} ${order.address ? `| ${esc(order.address)}` : ""}
+            ${order.deliveryTimeText ? `<br/><strong>Delivery Slot:</strong> ${esc(order.deliveryTimeText)}` : ""}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item / SKU</th>
+                <th style="text-align:right">Qty</th>
+                <th style="text-align:right">Rate</th>
+                <th style="text-align:right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:12px;text-align:right;">
+            <div>Taxable Subtotal: <strong>${formatInr(order.subtotal)}</strong></div>
+            ${gstAmt > 0 ? `
+              <div>SGST: <strong>${formatInr(halfGst)}</strong></div>
+              <div>CGST: <strong>${formatInr(halfGst)}</strong></div>
+              <div>Total GST: <strong>${formatInr(gstAmt)}</strong></div>
+            ` : ""}
+            <div style="font-size:16px;margin-top:4px;border-top:1px solid #999;padding-top:4px;">Grand Total: <strong>${formatInr(order.totalAmount)}</strong></div>
+          </div>
+          ${order.ownerMessage ? `<div style="margin-top:10px;padding:8px;background:#f5f5f5;border:1px solid #ddd;">Owner Note: ${esc(order.ownerMessage)}</div>` : ""}
+        </div>
+      `;
+      window.print();
+    }
+
+    function renderLiveOrders() {
+      const signinCard = document.getElementById("live-signin-card");
+      const container = document.getElementById("live-panel-container");
+
+      if (!currentUser) {
+        signinCard.classList.remove("hidden");
+        container.innerHTML = "";
+        elLiveBadge.classList.add("hidden");
+        return;
+      }
+
+      signinCard.classList.add("hidden");
+
+      const activeCount = myOrders.filter((o) => o.status === "PENDING" || o.status === "CONFIRMED").length;
+      if (myOrders.length > 0) {
+        elLiveBadge.textContent = String(activeCount > 0 ? activeCount : myOrders.length);
+        elLiveBadge.classList.remove("hidden");
+      } else {
+        elLiveBadge.classList.add("hidden");
+      }
+
+      if (!distributorUid) {
+        container.innerHTML = `<div class="card"><p class="muted">Enter Distributor Code to view your live orders.</p></div>`;
+        return;
+      }
+
+      if (myOrders.length === 0) {
+        container.innerHTML = `
+          <div class="card">
+            <h3 class="section-title">No Online Orders Yet</h3>
+            <p class="muted">Select Bisleri SKUs from the Order tab and tap <strong>Send Order to Owner</strong>. Your live confirmation &amp; delivery slot will appear right here!</p>
+            <button class="btn btn-outline btn-sm" id="btn-go-order-skus" type="button">Browse Bisleri SKUs</button>
+          </div>
+        `;
+        document.getElementById("btn-go-order-skus")?.addEventListener("click", () => switchTab("order"));
+        return;
+      }
+
+      const focusOrder = (highlightOrderId && myOrders.find((o) => o.id === highlightOrderId)) || myOrders[0];
+
+      container.innerHTML = myOrders.map((ord) => {
+        const isPrimary = ord.id === focusOrder.id;
+        const st = ord.status || "PENDING";
+        const bannerClass = st === "CONFIRMED" ? "confirmed" : st === "DELIVERED" ? "delivered" : st === "REJECTED" ? "rejected" : "pending";
+        const statusTitle =
+          st === "CONFIRMED" ? "Confirmed by Owner!"
+          : st === "DELIVERED" ? "Delivered & GST Invoice Ready"
+          : st === "REJECTED" ? "Order Declined by Owner"
+          : "Order Sent! Waiting for Owner Confirmation...";
+
+        const upiUrl = buildUpiPayUrl(ord);
+        const dtStr = ord.createdAt?.toDate ? ord.createdAt.toDate().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Just now";
+
+        return `
+          <div class="card" style="${isPrimary ? "border:2px solid var(--primary);" : ""}">
+            <div class="live-banner ${bannerClass}">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <strong style="font-size:1rem;">${statusTitle}</strong>
+                ${ord.linkedInvoiceNumber ? `<span class="chip success">Invoice #${esc(ord.linkedInvoiceNumber)}</span>` : `<span class="chip warning">${esc(st)}</span>`}
+              </div>
+              ${ord.deliveryTimeText ? `<div style="margin-top:8px;font-size:0.95rem;font-weight:800;">Delivery Time: ${esc(ord.deliveryTimeText)}</div>` : ""}
+              ${ord.ownerMessage ? `<div style="margin-top:6px;font-size:0.86rem;">Owner Message: ${esc(ord.ownerMessage)}</div>` : ""}
+            </div>
+
+            ${renderStatusTimeline(st)}
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+              <div>
+                <div style="font-weight:800;font-size:0.96rem;">${esc(ord.shopName)}</div>
+                <div class="muted">${esc(ord.customerPhone)} • ${esc(ord.area || "-")} • ${esc(dtStr)}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:800;font-size:1.05rem;color:var(--primary-dark);">${formatInr(ord.totalAmount)}</div>
+                <div class="muted" style="font-size:0.74rem;">Incl. GST ${formatInr(ord.gstAmount)}</div>
+              </div>
+            </div>
+
+            <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+              ${(ord.items || []).map((it) => `
+                <div class="summary-row" style="color:var(--text);">
+                  <span>${it.qty} × ${esc(it.productName)} (${esc(it.unitLabel)})</span>
+                  <strong>${formatInr(Number(it.qty || 0) * Number(it.rate || 0))}</strong>
+                </div>
+              `).join("")}
+              <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">
+                <div class="summary-row"><span>Taxable Subtotal</span><span>${formatInr(ord.subtotal)}</span></div>
+                ${Number(ord.gstAmount || 0) > 0 ? `
+                  <div class="summary-row"><span>SGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
+                  <div class="summary-row"><span>CGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
+                ` : ""}
+                <div class="summary-row total"><span>Grand Total</span><span>${formatInr(ord.totalAmount)}</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+              <button class="btn btn-outline btn-sm btn-print-inv" data-oid="${esc(ord.id)}" type="button">
+                Download / Print GST Invoice
+              </button>
+              ${upiUrl && st !== "REJECTED" ? `
+                <a class="btn btn-primary btn-sm" href="${esc(upiUrl)}">Pay via UPI (${formatInr(ord.totalAmount)})</a>
+              ` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      container.querySelectorAll(".btn-print-inv").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const target = myOrders.find((o) => o.id === btn.dataset.oid);
+          if (target) openPrintInvoice(target);
+        });
+      });
+    }
+
+    function subscribeMyOrders() {
+      if (unsubOrders) {
+        unsubOrders();
+        unsubOrders = null;
+      }
+      if (!currentUser || !distributorUid) {
+        myOrders = [];
+        renderLiveOrders();
+        return;
+      }
+
+      const q = query(
+        collection(db, "users", distributorUid, "online_orders"),
+        where("customerAuthUid", "==", currentUser.uid)
+      );
+
+      unsubOrders = onSnapshot(q, (snap) => {
+        const list = [];
+        snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+        list.sort((a, b) => (b.createdAt?.seconds || Date.now() / 1000) - (a.createdAt?.seconds || Date.now() / 1000));
+        myOrders = list;
+        renderLiveOrders();
+      }, (err) => {
+        showAlert("Live tracking error: " + err.message);
+      });
+    }
+
+    async function submitOrderNow() {
+      clearAlert();
+      if (!distributorUid) {
+        showAlert("Distributor Code missing. Scan the Distributor QR code again.");
+        return;
+      }
+      const shopName = inpShop.value.trim().slice(0, 100);
+      const customerPhone = inpPhone.value.trim().slice(0, 20);
+      const customerName = inpOwner.value.trim().slice(0, 80);
+      const area = inpArea.value.trim().slice(0, 80);
+      const address = inpAddress.value.trim().slice(0, 200);
+      const notes = inpNotes.value.trim().slice(0, 300);
+      const items = computeOrderItems();
+
+      if (!shopName) {
+        showAlert("Please enter your Shop or Customer Name.");
+        inpShop.focus();
+        return;
+      }
+      if (customerPhone.replace(/\D/g, "").length < 6) {
+        showAlert("Please enter a valid Mobile Number (minimum 6 digits).");
+        inpPhone.focus();
+        return;
+      }
+      if (items.length === 0 || items.length > 30) {
+        showAlert("Please select at least 1 Bisleri SKU.");
+        return;
+      }
+
+      const totalCartons = items.reduce((acc, it) => acc + it.qty, 0);
+      const zoneEval = evaluateDeliveryZoneWeb(totalCartons);
+      if (!zoneEval.canSubmit) {
+        showAlert(zoneEval.message);
+        document.getElementById("map-zone-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      let finalItems = items.slice(0, 30);
+      if (zoneEval.deliveryChargeTotal > 0 && totalCartons > 0) {
+        const distLabel = zoneEval.distanceKm !== null ? zoneEval.distanceKm.toFixed(1) + " km" : "Zone";
+        const deliveryLineItem = {
+          productId: "__DELIVERY_CHARGE__",
+          productName: `Delivery Charge (${distLabel})`.slice(0, 100),
+          unitLabel: "CTN",
+          qty: totalCartons,
+          rate: Number(zoneEval.chargePerCtn.toFixed(4)),
+          gstPercent: 0,
+          lineTotal: Number(zoneEval.deliveryChargeTotal.toFixed(2))
+        };
+        finalItems = items.slice(0, 29).concat([deliveryLineItem]);
+      }
+
+      const mapTag = zoneEval.hasPin
+        ? `[Map: ${zoneEval.distanceKm !== null ? zoneEval.distanceKm.toFixed(1) + " km, " : ""}${customerLat.toFixed(4)},${customerLon.toFixed(4)}]`
+        : "";
+      const finalNotes = [notes, mapTag].filter(Boolean).join(" • ").slice(0, 300);
+
+      saveCustomerProfile();
+
+      if (!currentUser) {
+        const user = await triggerGoogleSignIn(true);
+        if (!user) return; // redirect started or user cancelled
+      }
+
+      elBtnSubmit.disabled = true;
+      elBtnSubmit.textContent = "Sending Order...";
+
+      try {
+        const subtotal = finalItems.reduce((acc, it) => acc + (it.qty * it.rate), 0);
+        const gstAmount = finalItems.reduce((acc, it) => acc + (it.qty * it.rate * (it.gstPercent / 100)), 0);
+        const totalAmount = subtotal + gstAmount;
+
+        const payload = {
+          customerAuthUid: auth.currentUser.uid,
+          shopName,
+          customerName,
+          customerPhone,
+          area,
+          address,
+          items: finalItems.map(({ productId, productName, unitLabel, qty, rate, gstPercent, lineTotal }) => ({
+            productId, productName, unitLabel, qty, rate, gstPercent, lineTotal
+          })),
+          subtotal: Number(subtotal.toFixed(2)),
+          gstAmount: Number(gstAmount.toFixed(2)),
+          totalAmount: Number(totalAmount.toFixed(2)),
+          notes: finalNotes,
+          status: "PENDING",
+          deliveryTimeText: "",
+          ownerMessage: "",
+          linkedOrderId: "",
+          linkedInvoiceNumber: "",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        const docRef = await addDoc(collection(db, "users", distributorUid, "online_orders"), payload);
+        highlightOrderId = docRef.id;
+        qtyMap = {};
+        inpNotes.value = "";
+        renderCatalog();
+        switchTab("live");
+        showAlert("Order sent directly to Owner App Dashboard! Track confirmation below.", "info");
+      } catch (err) {
+        showAlert("Order failed: " + (err.message || "Please try again."));
+      } finally {
+        elBtnSubmit.textContent = "Send Order to Owner";
+        updateTotalsUI();
+      }
+    }
+
+    elBtnSubmit.addEventListener("click", submitOrderNow);
+
+    // Boot
+    restoreSavedProfile();
+    if (highlightOrderId) switchTab("live");
+    initOrUpdateMap();
+    subscribeStore();
+
+    getRedirectResult(auth).catch((err) => {
+      if (err && err.code !== "auth/no-auth-event") {
+        showAlert("Sign-in error: " + (err.message || err.code));
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user || null;
+      if (currentUser) {
+        const label = currentUser.displayName ? currentUser.displayName.split(" ")[0] : "Signed In";
+        elBtnAuth.textContent = `${label} • Sign out`;
+        if (!inpOwner.value && currentUser.displayName) {
+          inpOwner.value = currentUser.displayName;
+        }
+      } else {
+        elBtnAuth.textContent = "Google Sign in";
+      }
+      subscribeMyOrders();
+
+      if (currentUser && pendingAutoSubmit) {
+        pendingAutoSubmit = false;
+        await submitOrderNow();
+      }
+    });
+  </script>
+</body>
+</html>
