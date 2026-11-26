@@ -519,10 +519,8 @@
       font-size: 0.78rem;
       color: var(--muted);
       margin-top: 2px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      line-height: 1.38;
+      word-break: break-word;
     }
 
     .change-link-btn {
@@ -1036,14 +1034,14 @@
               <input type="text" id="inp-owner" placeholder="Your name" maxlength="80" />
             </div>
             <div>
-              <label for="inp-area">Area / Market</label>
-              <input type="text" id="inp-area" placeholder="e.g. Station Road" maxlength="80" />
+              <label for="inp-area">Map Auto Location (From GPS / Map Pin)</label>
+              <input type="text" id="inp-area" placeholder="Auto-filled from Google Map pin" maxlength="80" />
             </div>
           </div>
           <div class="form-grid" style="margin-top:10px;">
             <div>
-              <label for="inp-address">Full Delivery Address</label>
-              <input type="text" id="inp-address" placeholder="Shop No, Building, Landmark" maxlength="200" />
+              <label for="inp-address">Delivery Address (Type Your Real Address)</label>
+              <textarea id="inp-address" rows="2" placeholder="House / Shop No., Street, Landmark, Market (Manual Real Address)" maxlength="250"></textarea>
             </div>
           </div>
 
@@ -1086,7 +1084,11 @@
           <div class="summary-row"><span>Taxable Amount</span><span id="sum-subtotal">₹0.00</span></div>
           <div class="summary-row"><span>SGST</span><span id="sum-sgst">₹0.00</span></div>
           <div class="summary-row"><span>CGST</span><span id="sum-cgst">₹0.00</span></div>
-          <div class="summary-row hidden" id="sum-delivery-row">
+          <div class="summary-row" id="sum-zone-row">
+            <span id="sum-zone-label">Min Qty &amp; Zone Rule</span>
+            <span id="sum-zone-val">Checking...</span>
+          </div>
+          <div class="summary-row" id="sum-delivery-row">
             <span id="sum-delivery-label">Delivery Charge</span>
             <span id="sum-delivery">₹0.00</span>
           </div>
@@ -1236,6 +1238,9 @@
     const urlT3c = urlT3cRaw !== null && urlT3cRaw !== "" && !Number.isNaN(Number(urlT3cRaw)) ? Number(urlT3cRaw) : -1;
 
     let storeData = null;
+    let autoDepotLat = 0;
+    let autoDepotLon = 0;
+    let autoDepotLookupStarted = false;
     let qtyMap = {};
     let customerLat = 0;
     let customerLon = 0;
@@ -1316,8 +1321,12 @@
     function getDeliveryConfig() {
       const storeLat = Number(storeData?.depotLatitude || 0) || 0;
       const storeLon = Number(storeData?.depotLongitude || 0) || 0;
-      const dlat = (storeLat !== 0 || storeLon !== 0) ? storeLat : urlDlat;
-      const dlon = (storeLat !== 0 || storeLon !== 0) ? storeLon : urlDlon;
+      const dlat = (storeLat !== 0 || storeLon !== 0)
+        ? storeLat
+        : ((urlDlat !== 0 || urlDlon !== 0) ? urlDlat : autoDepotLat);
+      const dlon = (storeLat !== 0 || storeLon !== 0)
+        ? storeLon
+        : ((urlDlat !== 0 || urlDlon !== 0) ? urlDlon : autoDepotLon);
       const hasDepot = dlat !== 0 || dlon !== 0;
 
       const t0k = Number(storeData?.tier0MaxKm || 0) || urlT0k || 2;
@@ -1353,19 +1362,23 @@
         : null;
 
       if (!cfg.hasDepot) {
+        const met = totalCartons >= cfg.t0q && totalCartons > 0;
+        const shortBy = Math.max(0, cfg.t0q - totalCartons);
         return {
           cfg,
           hasPin,
           distanceKm,
-          tone: "info",
-          chipText: hasPin ? "Pin Set" : "Standard",
-          minRequiredQty: 1,
+          tone: met ? "success" : "warning",
+          chipText: hasPin ? `Min ${cfg.t0q} CTN` : `Min ${cfg.t0q} CTN`,
+          minRequiredQty: cfg.t0q,
           chargePerCtn: 0,
           deliveryChargeTotal: 0,
           outOfRange: false,
-          canSubmit: totalCartons >= 1,
-          shortHint: "",
-          message: "Distributor Depot GPS not configured yet — standard order accepted."
+          canSubmit: met,
+          shortHint: met ? `Min ${cfg.t0q} CTN met (Free)` : `Add ${shortBy} more CTN (Min ${cfg.t0q} CTN)`,
+          message: met
+            ? `Minimum ${cfg.t0q} CTN met (${totalCartons} CTN • Standard Free Delivery).`
+            : `Minimum ${cfg.t0q} CTN required (Add ${shortBy} more CTN). Pin Owner Depot GPS in app Settings for 2–10 km distance & ₹${cfg.t3c}/CTN charges.`
         };
       }
 
@@ -1518,48 +1531,149 @@
       return evaluateZoneForCoords(customerLat, customerLon, totalCartons);
     }
 
+    function isSyntheticPlaceText(raw) {
+      const clean = String(raw || "").trim().toLowerCase();
+      return !clean ||
+        clean === "pinned location" ||
+        clean === "pinned delivery location" ||
+        clean === "exact spot marked on map" ||
+        clean === "ready for delivery" ||
+        clean === "selected location" ||
+        clean === "selected area" ||
+        clean === "current location" ||
+        clean === "location pin set on map";
+    }
+
+    function cleanAddressSegment(raw) {
+      const s = String(raw || "").trim()
+        .replace(/^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,5}[,\s-]*/i, "")
+        .trim();
+      if (!s) return "";
+      if (/^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,5}$/i.test(s)) return "";
+      if (/^-?\d+\.\d+$/.test(s)) return "";
+      const low = s.toLowerCase();
+      if (low === "unnamed road" || low === "india" || low === "bharat") return "";
+      return s;
+    }
+
+    function joinCleanAddressParts(parts) {
+      const seen = new Set();
+      const out = [];
+      for (const p of parts) {
+        const cleaned = cleanAddressSegment(p);
+        if (!cleaned) continue;
+        const key = cleaned.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(cleaned);
+        }
+      }
+      return out.join(", ");
+    }
+
+    function formatNominatimPlace(a = {}, rawDisplay = "") {
+      const areaTitle = joinCleanAddressParts([
+        a.suburb || a.neighbourhood || a.residential || a.quarter || a.village || a.town,
+        a.city || a.town || a.state_district
+      ]).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 2).join(", ");
+
+      const houseBuilding = [cleanAddressSegment(a.house_number), cleanAddressSegment(a.building || a.shop || a.amenity)]
+        .filter(Boolean).join(" ");
+      const structured = joinCleanAddressParts([
+        houseBuilding,
+        a.road || a.pedestrian,
+        a.neighbourhood || a.residential || a.suburb,
+        a.city_district || a.village || a.town || a.city,
+        a.state,
+        a.postcode
+      ]);
+      const cleanedDisplay = joinCleanAddressParts(String(rawDisplay || "").split(","));
+      const fullAddress = structured.length >= 8 ? structured : (cleanedDisplay || areaTitle);
+      const title = areaTitle || (fullAddress ? fullAddress.split(",")[0].trim() : "Selected Location");
+      return { title, fullAddress, isSynthetic: !fullAddress };
+    }
+
     async function reverseGeocodePlace(lat, lon) {
       if (reverseAbortCtrl) reverseAbortCtrl.abort();
       reverseAbortCtrl = new AbortController();
+      const signal = reverseAbortCtrl.signal;
+
       try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
-        const resp = await fetch(url, { signal: reverseAbortCtrl.signal });
-        if (!resp.ok) throw new Error("Geocode failed");
-        const data = await resp.json();
-        const a = data.address || {};
-        const titleParts = [
-          a.suburb || a.neighbourhood || a.residential || a.village || a.town || a.road,
-          a.city || a.town || a.state_district
-        ].filter(Boolean);
-        const uniq = [...new Set(titleParts)];
-        const title = uniq.slice(0, 2).join(", ") || "Selected Location";
-        const fullAddress = data.display_name || title;
-        return { title, fullAddress };
+        const resp = await fetch(url, { signal });
+        if (resp.ok) {
+          const data = await resp.json();
+          const parsed = formatNominatimPlace(data.address || {}, data.display_name || "");
+          if (parsed.fullAddress) return parsed;
+        }
       } catch (e) {
         if (e.name === "AbortError") return null;
-        return { title: "Pinned Delivery Location", fullAddress: "Exact spot marked on map" };
       }
+
+      // CORS-friendly BigDataCloud fallback when Nominatim blocks or throttles browser requests
+      try {
+        const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`;
+        const bdcResp = await fetch(bdcUrl, { signal });
+        if (bdcResp.ok) {
+          const d = await bdcResp.json();
+          const adminNames = Array.isArray(d?.localityInfo?.administrative)
+            ? d.localityInfo.administrative.slice().reverse().map((x) => x?.name)
+            : [];
+          const locality = d.locality || adminNames[0] || "";
+          const city = d.city || "";
+          const state = d.principalSubdivision || "";
+          const postcode = d.postcode || "";
+          const title = joinCleanAddressParts([locality, city]) || "Selected Area";
+          const fullAddress = joinCleanAddressParts([locality, city, state, postcode]);
+          if (fullAddress) {
+            return { title, fullAddress, isSynthetic: false };
+          }
+        }
+      } catch (e) {
+        if (e.name === "AbortError") return null;
+      }
+
+      return { title: "Pinned Delivery Location", fullAddress: "", isSynthetic: true };
     }
 
     async function searchNominatimPlaces(q) {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=in&limit=5&q=${encodeURIComponent(q)}`;
         const resp = await fetch(url);
-        if (!resp.ok) return [];
-        const arr = await resp.json();
-        return Array.isArray(arr) ? arr.map((item) => {
-          const display = item.display_name || "";
-          const title = (item.name || display.split(",")[0] || "Location").trim();
-          return {
-            title,
-            fullAddress: display,
-            lat: Number(item.lat),
-            lon: Number(item.lon)
-          };
-        }) : [];
-      } catch (_) {
-        return [];
-      }
+        if (resp.ok) {
+          const arr = await resp.json();
+          if (Array.isArray(arr) && arr.length > 0) {
+            return arr.map((item) => {
+              const formatted = formatNominatimPlace(item.address || {}, item.display_name || "");
+              const title = cleanAddressSegment(item.name) || formatted.title;
+              return {
+                title: title || "Location",
+                fullAddress: formatted.fullAddress,
+                lat: Number(item.lat),
+                lon: Number(item.lon)
+              };
+            }).filter((x) => x.lat !== 0 || x.lon !== 0);
+          }
+        }
+      } catch (_) {}
+
+      // Photon fallback
+      try {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + " India")}&limit=5`;
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const json = await resp.json();
+          const feats = Array.isArray(json?.features) ? json.features : [];
+          return feats.map((f) => {
+            const coords = f?.geometry?.coordinates || [0, 0];
+            const p = f?.properties || {};
+            const fullAddress = joinCleanAddressParts([p.name, p.street, p.district || p.locality, p.city || p.county, p.state, p.postcode]);
+            const title = cleanAddressSegment(p.name) || joinCleanAddressParts([p.district || p.locality, p.city]) || "Location";
+            return { title, fullAddress, lat: Number(coords[1]) || 0, lon: Number(coords[0]) || 0 };
+          }).filter((x) => (x.lat !== 0 || x.lon !== 0) && x.fullAddress);
+        }
+      } catch (_) {}
+      return [];
     }
 
     function syncDeliveryBar(zoneEval) {
@@ -1569,15 +1683,29 @@
       const elQuick = document.getElementById("quick-loc-actions");
       const elBtnOpen = document.getElementById("btn-open-map-modal");
 
+      const typedAddr = inpAddress.value.trim();
+      const typedArea = inpArea.value.trim();
+      const bestTitle = !isSyntheticPlaceText(deliveryLocationTitle)
+        ? deliveryLocationTitle
+        : (typedArea || "Pinned Location");
+      const bestFull = !isSyntheticPlaceText(deliveryLocationFull)
+        ? deliveryLocationFull
+        : typedArea;
+
       if (elTitle) {
         elTitle.textContent = hasPin
-          ? `Delivering to ${deliveryLocationTitle || inpArea.value.trim() || "Pinned Location"}`
+          ? `Map Auto Location: ${bestTitle}`
           : "Set Delivery Location";
       }
       if (elAddr) {
-        elAddr.textContent = hasPin
-          ? (deliveryLocationFull || inpAddress.value.trim() || "Tap Change to adjust location on map")
-          : "Search area, landmark or use current GPS for instant delivery check";
+        if (hasPin) {
+          const mapLine = bestFull || "Google Map pin saved";
+          elAddr.textContent = typedAddr
+            ? `${mapLine} • Delivery Address: ${typedAddr}`
+            : `${mapLine} (Type real House/Shop No. in Delivery Address above)`;
+        } else {
+          elAddr.textContent = typedAddr || "Search area, landmark or use current GPS for instant delivery check";
+        }
       }
       if (elBtnOpen) {
         elBtnOpen.textContent = hasPin ? "Change Location" : "Set Location";
@@ -1622,8 +1750,12 @@
 
       const info = await reverseGeocodePlace(draftLat, draftLon);
       if (info) {
-        draftTitle = info.title;
-        draftAddress = info.fullAddress;
+        if (!info.isSynthetic) {
+          draftTitle = info.title;
+          draftAddress = info.fullAddress;
+        } else if (!draftAddress) {
+          draftTitle = info.title;
+        }
         updateModalBottomSheet();
       }
     }
@@ -1643,7 +1775,7 @@
         ? customerLon
         : (cfg.hasDepot ? cfg.dlon : 75.7873);
       draftTitle = deliveryLocationTitle || (hasSaved ? "Saved Location" : "Selected Location");
-      draftAddress = deliveryLocationFull || "";
+      draftAddress = deliveryLocationFull || inpAddress.value.trim() || "";
 
       initOrUpdateMap(true);
       setTimeout(() => {
@@ -1671,7 +1803,7 @@
           savedLocation: {
             title: String(titleText || "").slice(0, 120),
             area: String(inpArea.value.trim() || titleText || "").slice(0, 100),
-            address: String(fullAddrText || inpAddress.value.trim() || "").slice(0, 250),
+            address: String(inpAddress.value.trim() || fullAddrText || "").slice(0, 250),
             lat: Number(lat) || 0,
             lng: Number(lon) || 0
           },
@@ -1682,23 +1814,43 @@
       }
     }
 
-    function setCustomerPin(lat, lon, titleText = "", fullAddrText = "", syncToCloud = true) {
+    function setCustomerPin(lat, lon, titleText = "", fullAddrText = "", syncToCloud = true, isSynthetic = false) {
       customerLat = Number(lat) || 0;
       customerLon = Number(lon) || 0;
-      if (titleText) {
-        deliveryLocationTitle = titleText;
-        inpArea.value = titleText;
+      const cleanTitle = !isSynthetic && !isSyntheticPlaceText(titleText) ? String(titleText).trim() : "";
+      const cleanFull = !isSynthetic && !isSyntheticPlaceText(fullAddrText) ? String(fullAddrText).trim() : "";
+      if (cleanTitle) {
+        deliveryLocationTitle = cleanTitle;
+      } else if (!deliveryLocationTitle || isSyntheticPlaceText(deliveryLocationTitle)) {
+        deliveryLocationTitle = inpArea.value.trim() || "Pinned Location";
       }
-      if (fullAddrText) {
-        deliveryLocationFull = fullAddrText;
-        inpAddress.value = fullAddrText;
+      if (cleanFull) {
+        deliveryLocationFull = cleanFull;
+      } else if (isSyntheticPlaceText(deliveryLocationFull)) {
+        deliveryLocationFull = cleanTitle || inpArea.value.trim();
       }
+      const autoMapLabel = (cleanFull || cleanTitle).slice(0, 80);
+      if (autoMapLabel) {
+        inpArea.value = autoMapLabel;
+      }
+      // Keep inpAddress strictly for the consumer's manually typed real delivery address!
       saveCustomerProfile();
       updateTotalsUI();
       if (syncToCloud && (customerLat !== 0 || customerLon !== 0)) {
         persistSavedLocationToCustomer(customerLat, customerLon, deliveryLocationTitle, deliveryLocationFull);
       }
     }
+
+    inpArea.addEventListener("input", () => {
+      const val = inpArea.value.trim();
+      if (val) deliveryLocationTitle = val;
+      saveCustomerProfile();
+      syncDeliveryBar(evaluateDeliveryZoneWeb(computeOrderItems().reduce((a, it) => a + it.qty, 0)));
+    });
+    inpAddress.addEventListener("input", () => {
+      saveCustomerProfile();
+      syncDeliveryBar(evaluateDeliveryZoneWeb(computeOrderItems().reduce((a, it) => a + it.qty, 0)));
+    });
 
     function applyGoogleTileLayer() {
       if (!mapInstance || typeof window.L === "undefined") return;
@@ -1805,7 +1957,7 @@
             await handleDraftCenterChanged(lat, lon);
           } else {
             const info = await reverseGeocodePlace(lat, lon);
-            setCustomerPin(lat, lon, info?.title || "Current Location", info?.fullAddress || "", true);
+            setCustomerPin(lat, lon, info?.title || "", info?.fullAddress || "", true, Boolean(info?.isSynthetic));
           }
         },
         (err) => {
@@ -1835,7 +1987,7 @@
     document.getElementById("btn-use-gps").addEventListener("click", () => detectGpsForTarget(false));
     document.getElementById("modal-btn-gps").addEventListener("click", () => detectGpsForTarget(true));
     document.getElementById("modal-btn-confirm").addEventListener("click", () => {
-      setCustomerPin(draftLat, draftLon, draftTitle, draftAddress, true);
+      setCustomerPin(draftLat, draftLon, draftTitle, draftAddress, true, isSyntheticPlaceText(draftAddress));
       closeMapModal();
     });
 
@@ -2000,10 +2152,21 @@
       customerLat = lat;
       customerLon = lng;
       if (savedLoc.title) deliveryLocationTitle = savedLoc.title;
-      if (savedLoc.address) deliveryLocationFull = savedLoc.address;
-      if (savedLoc.area) inpArea.value = savedLoc.area;
-      else if (savedLoc.title && !inpArea.value.trim()) inpArea.value = savedLoc.title;
-      if (savedLoc.address) inpAddress.value = savedLoc.address;
+      const savedMapText = savedLoc.area || savedLoc.title || "";
+      if (savedMapText) {
+        deliveryLocationFull = savedMapText;
+        inpArea.value = savedMapText.slice(0, 80);
+      } else if (savedLoc.address) {
+        deliveryLocationFull = savedLoc.address;
+      }
+      if (
+        !inpAddress.value.trim() &&
+        savedLoc.address &&
+        savedLoc.address !== savedLoc.area &&
+        savedLoc.address !== savedLoc.title
+      ) {
+        inpAddress.value = savedLoc.address;
+      }
       saveCustomerProfile();
       updateTotalsUI();
     }
@@ -2492,6 +2655,18 @@
       return items;
     }
 
+    function renderZoneRulesPills(cfg) {
+      const pillsEl = document.getElementById("zone-rules-pills");
+      if (!pillsEl) return;
+      pillsEl.innerHTML = `
+        <span class="chip success">0–${cfg.t0k} km: Min ${cfg.t0q} CTN Free</span>
+        <span class="chip success">${cfg.t0k}–${cfg.t1k} km: Min ${cfg.t1q} CTN Free</span>
+        <span class="chip warning">${cfg.t1k}–${cfg.t2k} km: Min ${cfg.t2q} CTN Free</span>
+        <span class="chip info">${cfg.t2k}–${cfg.t3mk} km: Min ${cfg.t3q} CTN (₹${cfg.t3c}/CTN)</span>
+        <span class="chip info">${cfg.t3mk}–${cfg.t3k} km: Min ${cfg.t4q} CTN (₹${cfg.t3c}/CTN)</span>
+      `;
+    }
+
     function updateTotalsUI() {
       const items = computeOrderItems();
       const totalQty = items.reduce((acc, it) => acc + it.qty, 0);
@@ -2501,24 +2676,53 @@
       const deliveryCharge = zoneEval.deliveryChargeTotal;
       const total = subtotal + gstAmt + deliveryCharge;
 
+      renderZoneRulesPills(zoneEval.cfg);
+
       document.getElementById("sum-items").textContent = `${items.length} SKU (${totalQty} CTN)`;
       document.getElementById("sum-subtotal").textContent = formatInr(subtotal);
       document.getElementById("sum-sgst").textContent = formatInr(gstAmt / 2);
       document.getElementById("sum-cgst").textContent = formatInr(gstAmt / 2);
 
+      const sumZoneLabel = document.getElementById("sum-zone-label");
+      const sumZoneVal = document.getElementById("sum-zone-val");
+      if (sumZoneLabel && sumZoneVal) {
+        sumZoneLabel.textContent = `Min Qty Rule (${totalQty}/${zoneEval.minRequiredQty} CTN)`;
+        sumZoneVal.textContent = zoneEval.outOfRange
+          ? "Out of Range"
+          : (zoneEval.cfg.hasDepot && !zoneEval.hasPin)
+          ? "Set Map Pin"
+          : (zoneEval.canSubmit ? "Condition Met" : `Min ${zoneEval.minRequiredQty} CTN`);
+        sumZoneVal.style.color = zoneEval.outOfRange
+          ? "var(--danger)"
+          : zoneEval.canSubmit
+          ? "var(--success)"
+          : "var(--warning)";
+        sumZoneVal.style.fontWeight = "800";
+      }
+
       const delRow = document.getElementById("sum-delivery-row");
       const delLabel = document.getElementById("sum-delivery-label");
       const delVal = document.getElementById("sum-delivery");
-      if (zoneEval.cfg.hasDepot && (deliveryCharge > 0 || (zoneEval.hasPin && !zoneEval.outOfRange))) {
+      if (delRow && delLabel && delVal) {
         delRow.classList.remove("hidden");
         delLabel.textContent = deliveryCharge > 0
-          ? `Delivery Charge (${totalQty} CTN × ₹${zoneEval.cfg.t3c})`
-          : `Delivery (${zoneEval.distanceKm.toFixed(1)} km)`;
-        delVal.textContent = deliveryCharge > 0 ? formatInr(deliveryCharge) : "FREE";
-        delVal.style.color = deliveryCharge > 0 ? "var(--accent)" : "var(--success)";
+          ? `Delivery Charge (${totalQty} CTN × ₹${zoneEval.chargePerCtn})`
+          : zoneEval.hasPin && zoneEval.distanceKm !== null
+          ? `Delivery Charge (${zoneEval.distanceKm.toFixed(1)} km)`
+          : "Delivery Charge";
+        delVal.textContent = zoneEval.outOfRange
+          ? "N/A"
+          : deliveryCharge > 0
+          ? formatInr(deliveryCharge)
+          : (zoneEval.cfg.hasDepot && !zoneEval.hasPin)
+          ? "Set Map Pin"
+          : "FREE";
+        delVal.style.color = deliveryCharge > 0
+          ? "var(--accent)"
+          : zoneEval.outOfRange
+          ? "var(--danger)"
+          : "var(--success)";
         delVal.style.fontWeight = "800";
-      } else {
-        delRow.classList.add("hidden");
       }
 
       document.getElementById("sum-total").textContent = formatInr(total);
@@ -2552,6 +2756,18 @@
           : zoneEval.tone === "warning"
           ? "var(--warning)"
           : "var(--accent)";
+      }
+      const shortBy = Math.max(0, zoneEval.minRequiredQty - totalQty);
+      if (items.length === 0) {
+        elBtnSubmit.textContent = "Send Order to Owner";
+      } else if (zoneEval.cfg.hasDepot && !zoneEval.hasPin) {
+        elBtnSubmit.textContent = "Set Delivery Pin";
+      } else if (zoneEval.outOfRange) {
+        elBtnSubmit.textContent = "Outside Range";
+      } else if (!zoneEval.canSubmit && shortBy > 0) {
+        elBtnSubmit.textContent = `Add ${shortBy} More CTN`;
+      } else {
+        elBtnSubmit.textContent = "Send Order to Owner";
       }
       elBtnSubmit.disabled = items.length === 0 || !zoneEval.canSubmit;
     }
@@ -2650,6 +2866,17 @@
       applyStoreHeader(storeData);
       initOrUpdateMap();
       renderCatalog();
+      if (!getDeliveryConfig().hasDepot && storeData?.address && !autoDepotLookupStarted) {
+        autoDepotLookupStarted = true;
+        searchNominatimPlaces(storeData.address).then((hits) => {
+          if (hits && hits.length > 0 && (hits[0].lat !== 0 || hits[0].lon !== 0)) {
+            autoDepotLat = hits[0].lat;
+            autoDepotLon = hits[0].lon;
+            initOrUpdateMap();
+            updateTotalsUI();
+          }
+        }).catch(() => {});
+      }
     }
 
     function subscribeStore() {
@@ -2872,31 +3099,45 @@
             ${renderStatusTimeline(st)}
 
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-              <div>
+              <div style="min-width:0;flex:1;">
                 <div style="font-weight:800;font-size:0.96rem;">${esc(ord.shopName)}</div>
                 <div class="muted">${esc(ord.customerPhone)} • ${esc(ord.area || "-")} • ${esc(dtStr)}</div>
+                ${ord.address ? `<div class="muted" style="margin-top:2px;word-break:break-word;">Address: ${esc(ord.address)}</div>` : ""}
               </div>
-              <div style="text-align:right;">
+              <div style="text-align:right;flex-shrink:0;">
                 <div style="font-weight:800;font-size:1.05rem;color:var(--primary-dark);">${formatInr(ord.totalAmount)}</div>
                 <div class="muted" style="font-size:0.74rem;">Incl. GST ${formatInr(ord.gstAmount)}</div>
               </div>
             </div>
 
             <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
-              ${(ord.items || []).map((it) => `
-                <div class="summary-row" style="color:var(--text);">
-                  <span>${it.qty} × ${esc(it.productName)} (${esc(it.unitLabel)})</span>
-                  <strong>${formatInr(Number(it.qty || 0) * Number(it.rate || 0))}</strong>
-                </div>
-              `).join("")}
-              <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">
-                <div class="summary-row"><span>Taxable Subtotal</span><span>${formatInr(ord.subtotal)}</span></div>
-                ${Number(ord.gstAmount || 0) > 0 ? `
-                  <div class="summary-row"><span>SGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
-                  <div class="summary-row"><span>CGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
-                ` : ""}
-                <div class="summary-row total"><span>Grand Total</span><span>${formatInr(ord.totalAmount)}</span></div>
-              </div>
+              ${(() => {
+                const allItems = Array.isArray(ord.items) ? ord.items : [];
+                const skuRows = allItems.filter((it) => it.productId !== "__DELIVERY_CHARGE__");
+                const dcRows = allItems.filter((it) => it.productId === "__DELIVERY_CHARGE__");
+                const dcTotal = dcRows.reduce((s, it) => s + Number(it.lineTotal || (Number(it.qty || 0) * Number(it.rate || 0))), 0);
+                const prodSubtotal = Math.max(0, Number(ord.subtotal || 0) - dcTotal);
+                return `
+                  ${skuRows.map((it) => `
+                    <div class="summary-row" style="color:var(--text);">
+                      <span>${it.qty} × ${esc(it.productName)} (${esc(it.unitLabel)})</span>
+                      <strong>${formatInr(Number(it.qty || 0) * Number(it.rate || 0))}</strong>
+                    </div>
+                  `).join("")}
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">
+                    <div class="summary-row"><span>Products Taxable Subtotal</span><span>${formatInr(prodSubtotal)}</span></div>
+                    ${Number(ord.gstAmount || 0) > 0 ? `
+                      <div class="summary-row"><span>SGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
+                      <div class="summary-row"><span>CGST</span><span>${formatInr(Number(ord.gstAmount || 0) / 2)}</span></div>
+                    ` : ""}
+                    <div class="summary-row">
+                      <span>${dcRows.length > 0 ? esc(dcRows.map((d) => `${d.productName} (${d.qty} CTN × ${formatInr(d.rate)})`).join(", ")) : "Delivery Charge"}</span>
+                      <strong style="color:${dcTotal > 0 ? "var(--accent)" : "var(--success)"};">${dcTotal > 0 ? formatInr(dcTotal) : "FREE"}</strong>
+                    </div>
+                    <div class="summary-row total"><span>Grand Total</span><span>${formatInr(ord.totalAmount)}</span></div>
+                  </div>
+                `;
+              })()}
             </div>
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
@@ -2957,8 +3198,8 @@
       const phoneKey = customerSession?.phoneKey || normalizePhoneKey(rawPhone);
       const customerPhone = (phoneKey || rawPhone).slice(0, 20);
       const customerName = (inpOwner.value.trim() || customerSession?.name || shopName).slice(0, 80);
-      const area = inpArea.value.trim().slice(0, 80);
-      const address = (inpAddress.value.trim() || deliveryLocationFull).slice(0, 250);
+      const area = (inpArea.value.trim() || deliveryLocationTitle).slice(0, 80);
+      const address = (inpAddress.value.trim() || deliveryLocationFull || area).slice(0, 250);
       const notes = inpNotes.value.trim().slice(0, 300);
       const items = computeOrderItems();
 
@@ -3007,7 +3248,7 @@
 
       saveCustomerProfile();
       if (customerSession?.phoneKey && (customerLat !== 0 || customerLon !== 0)) {
-        persistSavedLocationToCustomer(customerLat, customerLon, deliveryLocationTitle || area, address);
+        persistSavedLocationToCustomer(customerLat, customerLon, deliveryLocationTitle || area, deliveryLocationFull || address);
       }
 
       elBtnSubmit.disabled = true;
