@@ -800,6 +800,61 @@
         background: #f3f4f6;
       }
     }
+    /* Customer PIN Auth & Google Map Layer Toggle */
+    .pin-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+      background: #F1F5F8;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .pin-tab {
+      border: none;
+      background: transparent;
+      padding: 8px 6px;
+      border-radius: 9px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .pin-tab.active {
+      background: #fff;
+      color: var(--primary-dark);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .session-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #E8F5E9;
+      border: 1px solid #A5D6A7;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .map-type-toggle {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 410;
+      background: #fff;
+      color: var(--primary-dark);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -810,7 +865,7 @@
           <h1 class="brand-title" id="hdr-company">BALAJI ENTERPRISES</h1>
           <div class="brand-sub" id="hdr-tagline">Direct Online Bisleri Order & Live Status Panel</div>
         </div>
-        <button class="auth-pill" id="btn-auth" type="button">Sign in</button>
+        <button class="auth-pill" id="btn-auth" type="button">PIN Login</button>
       </div>
     </div>
   </header>
@@ -851,12 +906,92 @@
             <div style="font-weight:800;font-size:1.05rem;" id="store-name">Loading Distributor Store...</div>
             <div class="muted" id="store-address"></div>
           </div>
-          <span class="chip success">Direct to Owner Dashboard</span>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span class="chip success">Direct to Owner Dashboard</span>
+            <button type="button" class="change-link-btn" id="btn-switch-dist" style="font-size:0.75rem;padding:4px 8px;">Change Store</button>
+          </div>
         </div>
         <div class="store-meta" id="store-meta-chips"></div>
       </div>
 
-      <!-- Zomato / Flipkart Style Delivery Location Bar -->
+      <!-- Customer Mobile + 4-Digit PIN Login / Register / Forgot PIN (No OTP) -->
+      <div class="card" id="customer-auth-card">
+        <div id="customer-session-bar" class="session-bar hidden">
+          <div>
+            <div style="font-weight:800;font-size:0.94rem;color:#1B5E20;" id="session-user-title">Customer Logged In</div>
+            <div style="font-size:0.78rem;color:#2E7D32;" id="session-user-sub">Trusted Device active — auto login enabled</div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-customer-logout" style="color:var(--danger);border-color:#EF9A9A;">Logout</button>
+        </div>
+
+        <div id="customer-auth-forms">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <div style="font-weight:800;font-size:0.96rem;color:var(--primary-dark);">Customer Account (Without OTP)</div>
+            <span class="chip info">Trusted Device</span>
+          </div>
+          <div class="pin-tabs" role="tablist">
+            <button type="button" class="pin-tab active" id="pin-tab-login">PIN Login</button>
+            <button type="button" class="pin-tab" id="pin-tab-register">New Register</button>
+            <button type="button" class="pin-tab" id="pin-tab-forgot">Forgot PIN</button>
+          </div>
+
+          <div id="auth-form-status" class="alert hidden" style="margin-bottom:10px;"></div>
+
+          <!-- Login Tab -->
+          <div id="panel-pin-login">
+            <div class="form-grid two-col">
+              <div>
+                <label for="login-mobile">10-Digit Mobile Number *</label>
+                <input type="tel" id="login-mobile" placeholder="e.g. 9876543210" maxlength="14" />
+              </div>
+              <div>
+                <label for="login-pin">4-Digit PIN *</label>
+                <input type="password" inputmode="numeric" id="login-pin" placeholder="4-digit PIN" maxlength="4" />
+              </div>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <button type="button" class="btn btn-primary" id="btn-pin-login" style="flex:1;">Login with PIN</button>
+            </div>
+          </div>
+
+          <!-- Register Tab -->
+          <div id="panel-pin-register" class="hidden">
+            <div class="form-grid two-col">
+              <div>
+                <label for="reg-mobile">10-Digit Mobile Number *</label>
+                <input type="tel" id="reg-mobile" placeholder="e.g. 9876543210" maxlength="14" />
+              </div>
+              <div>
+                <label for="reg-name">Name / Shop Name *</label>
+                <input type="text" id="reg-name" placeholder="e.g. Mahalaxmi Kirana" maxlength="100" />
+              </div>
+              <div>
+                <label for="reg-pin">Create 4-Digit PIN *</label>
+                <input type="password" inputmode="numeric" id="reg-pin" placeholder="4-digit PIN" maxlength="4" />
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <button type="button" class="btn btn-primary" id="btn-pin-register">Create Account &amp; Login</button>
+            </div>
+          </div>
+
+          <!-- Forgot PIN Tab (Mobile Number Only) -->
+          <div id="panel-pin-forgot" class="hidden">
+            <p class="muted" style="margin-top:0;">Enter only your 10-digit mobile number. Distributor will set your new 4-digit PIN.</p>
+            <div class="form-grid two-col">
+              <div>
+                <label for="forgot-mobile">10-Digit Mobile Number *</label>
+                <input type="tel" id="forgot-mobile" placeholder="e.g. 9876543210" maxlength="14" />
+              </div>
+              <div style="display:flex;align-items:flex-end;">
+                <button type="button" class="btn btn-primary" id="btn-forgot-pin">Send PIN Reset Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zomato / Flipkart Style Google Map Delivery Location Bar -->
       <div class="card" id="map-zone-card">
         <div class="deliver-row">
           <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
@@ -870,14 +1005,14 @@
                 <span class="deliver-title" id="deliver-to-title">Set Delivery Location</span>
                 <span class="chip info" id="distance-chip">Select Location</span>
               </div>
-              <div class="deliver-sub" id="deliver-to-address">Search area, landmark or use current GPS for instant delivery check</div>
+              <div class="deliver-sub" id="deliver-to-address">First-time GPS pin saves automatically for all future orders</div>
             </div>
           </div>
-          <button class="change-link-btn" id="btn-open-map-modal" type="button">Search / Map</button>
+          <button class="change-link-btn" id="btn-open-map-modal" type="button">Set Location</button>
         </div>
         <div id="quick-loc-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
           <button class="btn btn-primary btn-sm" id="btn-use-gps" type="button">📍 Use Current Location</button>
-          <button class="btn btn-outline btn-sm" id="btn-open-map-alt" type="button">🗺️ Pick on Map</button>
+          <button class="btn btn-outline btn-sm" id="btn-open-map-alt" type="button">🗺️ Open Google Map</button>
         </div>
         <div id="zone-status-banner" class="zone-banner info">
           Select your delivery location to check free delivery &amp; zone minimum cartons.
@@ -950,9 +1085,9 @@
     <!-- TAB 2: LIVE ORDER CONFIRMATION PANEL -->
     <section id="live-view" class="hidden">
       <div id="live-signin-card" class="card hidden">
-        <h2 class="section-title">View Your Live Order Status</h2>
-        <p class="muted">Sign in with your Google account to see real-time Owner confirmation, delivery slot &amp; GST invoice.</p>
-        <button class="btn btn-primary" id="btn-live-signin" type="button">Continue with Google</button>
+        <h2 class="section-title">Mere Orders / Live Order Status</h2>
+        <p class="muted">Login with your 10-digit Mobile Number &amp; 4-digit PIN (without OTP) to see only your orders, live confirmation, delivery slot &amp; GST invoice.</p>
+        <button class="btn btn-primary" id="btn-live-signin" type="button">Go to PIN Login</button>
       </div>
 
       <div id="live-panel-container"></div>
@@ -989,9 +1124,10 @@
     <div class="map-canvas-wrap">
       <div id="delivery-map" class="map-container"></div>
       <div id="map-search-results" class="search-dropdown hidden"></div>
+      <button type="button" class="map-type-toggle" id="btn-map-layer-toggle">Google Map: Road</button>
 
       <div id="center-pin-overlay" class="center-pin-overlay">
-        <div class="pin-tooltip" id="pin-tooltip-label">Move map to set pin</div>
+        <div class="pin-tooltip" id="pin-tooltip-label">Move Google Map to set pin</div>
         <div class="pin-svg-wrap">
           <svg width="42" height="42" viewBox="0 0 24 24" fill="#E23744" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,0.35));">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -1033,9 +1169,13 @@
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
     import {
-      getFirestore,
+      initializeFirestore,
       doc,
       getDoc,
+      setDoc,
+      updateDoc,
+      arrayUnion,
+      arrayRemove,
       onSnapshot,
       collection,
       addDoc,
@@ -1056,7 +1196,10 @@
     const NAMED_DB_ID = "ai-studio-android-balajien-beefdaa3-bada-44ac-b2f7-ed052ac1a597";
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app, NAMED_DB_ID);
+    const db = initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false
+    }, NAMED_DB_ID);
     const googleProvider = new GoogleAuthProvider();
 
     // State
@@ -1090,10 +1233,15 @@
     let draftTitle = "";
     let draftAddress = "";
     let mapInstance = null;
+    let mapTileLayer = null;
+    let mapLayerMode = "m"; // 'm' = Google Road, 'y' = Google Satellite Hybrid
     let depotLayerGroup = null;
     let currentUser = null;
+    let customerSession = null; // { phoneKey, mobile, name }
+    let firstLocationPrompted = false;
     let myOrders = [];
     let unsubStore = null;
+    let storeLoadTimer = null;
     let unsubOrders = null;
     let pendingAutoSubmit = false;
     let searchTimer = null;
@@ -1586,7 +1734,7 @@
           : "Search area, landmark or use current GPS for instant delivery check";
       }
       if (elBtnOpen) {
-        elBtnOpen.textContent = hasPin ? "Change" : "Search / Map";
+        elBtnOpen.textContent = hasPin ? "Change Location" : "Set Location";
       }
       if (elQuick) {
         elQuick.classList.toggle("hidden", hasPin);
@@ -1599,7 +1747,7 @@
       const elZone = document.getElementById("modal-zone-banner");
       const elConfirm = document.getElementById("modal-btn-confirm");
       if (elTitle) elTitle.textContent = draftTitle || "Selected Location";
-      if (elAddr) elAddr.textContent = draftAddress || "Move map or search to set delivery pin";
+      if (elAddr) elAddr.textContent = draftAddress || "Move Google Map or search to set delivery pin";
 
       const items = computeOrderItems();
       const totalQty = items.reduce((acc, it) => acc + it.qty, 0);
@@ -1619,7 +1767,7 @@
       draftLon = Number(lon) || 0;
       document.getElementById("center-pin-overlay")?.classList.remove("dragging");
       const tooltipEl = document.getElementById("pin-tooltip-label");
-      if (tooltipEl) tooltipEl.textContent = "Move map to set pin";
+      if (tooltipEl) tooltipEl.textContent = "Move Google Map to set pin";
       const elTitle = document.getElementById("modal-place-title");
       const elAddr = document.getElementById("modal-place-address");
       if (elTitle) elTitle.textContent = "Locating address...";
@@ -1634,28 +1782,33 @@
       }
     }
 
-    function openMapModal() {
+    function openMapModal(autoFetchGpsIfEmpty = false) {
       const cfg = getDeliveryConfig();
       const modal = document.getElementById("map-picker-modal");
       modal.classList.remove("hidden");
       document.body.style.overflow = "hidden";
 
-      draftLat = (customerLat !== 0 || customerLon !== 0)
+      const hasSaved = customerLat !== 0 || customerLon !== 0;
+      // Change Location ALWAYS opens centered first on customer's existing saved location
+      draftLat = hasSaved
         ? customerLat
         : (cfg.hasDepot ? cfg.dlat : 26.9124);
-      draftLon = (customerLat !== 0 || customerLon !== 0)
+      draftLon = hasSaved
         ? customerLon
         : (cfg.hasDepot ? cfg.dlon : 75.7873);
-      draftTitle = deliveryLocationTitle || "Selected Location";
+      draftTitle = deliveryLocationTitle || (hasSaved ? "Saved Location" : "Selected Location");
       draftAddress = deliveryLocationFull || "";
 
       initOrUpdateMap(true);
       setTimeout(() => {
         if (mapInstance) {
           mapInstance.invalidateSize();
-          mapInstance.setView([draftLat, draftLon], 15, { animate: false });
+          mapInstance.setView([draftLat, draftLon], 16, { animate: false });
         }
         handleDraftCenterChanged(draftLat, draftLon);
+        if (!hasSaved && autoFetchGpsIfEmpty) {
+          detectGpsForTarget(true);
+        }
       }, 120);
     }
 
@@ -1665,19 +1818,57 @@
       document.body.style.overflow = "";
     }
 
-    function setCustomerPin(lat, lon, titleText = "", fullAddrText = "") {
+    async function persistSavedLocationToCustomer(lat, lon, titleText, fullAddrText) {
+      if (!customerSession?.phoneKey) return;
+      try {
+        await updateDoc(doc(db, "customers", customerSession.phoneKey), {
+          savedLocation: {
+            title: String(titleText || "").slice(0, 120),
+            area: String(inpArea.value.trim() || titleText || "").slice(0, 100),
+            address: String(fullAddrText || inpAddress.value.trim() || "").slice(0, 250),
+            lat: Number(lat) || 0,
+            lng: Number(lon) || 0
+          },
+          updatedAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.warn("Could not sync savedLocation:", err?.message || err);
+      }
+    }
+
+    function setCustomerPin(lat, lon, titleText = "", fullAddrText = "", syncToCloud = true) {
       customerLat = Number(lat) || 0;
       customerLon = Number(lon) || 0;
       if (titleText) {
         deliveryLocationTitle = titleText;
-        if (!inpArea.value.trim()) inpArea.value = titleText;
+        inpArea.value = titleText;
       }
       if (fullAddrText) {
         deliveryLocationFull = fullAddrText;
-        if (!inpAddress.value.trim()) inpAddress.value = fullAddrText;
+        inpAddress.value = fullAddrText;
       }
       saveCustomerProfile();
       updateTotalsUI();
+      if (syncToCloud && (customerLat !== 0 || customerLon !== 0)) {
+        persistSavedLocationToCustomer(customerLat, customerLon, deliveryLocationTitle, deliveryLocationFull);
+      }
+    }
+
+    function applyGoogleTileLayer() {
+      if (!mapInstance || typeof window.L === "undefined") return;
+      if (mapTileLayer) {
+        mapInstance.removeLayer(mapTileLayer);
+      }
+      const lyrs = mapLayerMode === "y" ? "y" : "m";
+      mapTileLayer = window.L.tileLayer(`https://mt{s}.google.com/vt/lyrs=${lyrs}&hl=en&x={x}&y={y}&z={z}`, {
+        subdomains: ["0", "1", "2", "3"],
+        maxZoom: 20,
+        attribution: "© Google Maps"
+      }).addTo(mapInstance);
+      const toggleBtn = document.getElementById("btn-map-layer-toggle");
+      if (toggleBtn) {
+        toggleBtn.textContent = mapLayerMode === "y" ? "Google Map: Satellite" : "Google Map: Road";
+      }
     }
 
     function initOrUpdateMap(fromModalOpen = false) {
@@ -1710,11 +1901,8 @@
 
       if (!mapInstance) {
         mapEl.innerHTML = "";
-        mapInstance = window.L.map("delivery-map", { zoomControl: false }).setView([centerLat, centerLon], 15);
-        window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: "© OpenStreetMap"
-        }).addTo(mapInstance);
+        mapInstance = window.L.map("delivery-map", { zoomControl: false }).setView([centerLat, centerLon], 16);
+        applyGoogleTileLayer();
         depotLayerGroup = window.L.layerGroup().addTo(mapInstance);
 
         mapInstance.on("movestart", () => {
@@ -1749,7 +1937,7 @@
 
     function detectGpsForTarget(inModal) {
       if (!navigator.geolocation) {
-        showAlert("GPS is not supported in this browser. Tap Search / Map to select your area.");
+        showAlert("GPS is not supported in this browser. Tap Set Location to pick on Google Map.");
         return;
       }
       const btn = document.getElementById(inModal ? "modal-btn-gps" : "btn-use-gps");
@@ -1771,7 +1959,7 @@
             await handleDraftCenterChanged(lat, lon);
           } else {
             const info = await reverseGeocodePlace(lat, lon);
-            setCustomerPin(lat, lon, info?.title || "Current Location", info?.fullAddress || "");
+            setCustomerPin(lat, lon, info?.title || "Current Location", info?.fullAddress || "", true);
           }
         },
         (err) => {
@@ -1779,25 +1967,29 @@
             btn.disabled = false;
             btn.textContent = origText;
           }
-          showAlert("Location access failed (" + err.message + "). Please allow Location or search your area on the map.");
+          showAlert("Location access failed (" + err.message + "). Please allow Location or search your area on Google Map.");
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
       );
     }
 
-    document.getElementById("btn-open-map-modal").addEventListener("click", openMapModal);
-    document.getElementById("btn-open-map-alt").addEventListener("click", openMapModal);
+    document.getElementById("btn-open-map-modal").addEventListener("click", () => {
+      const hasSaved = customerLat !== 0 || customerLon !== 0;
+      openMapModal(!hasSaved);
+    });
+    document.getElementById("btn-open-map-alt").addEventListener("click", () => {
+      const hasSaved = customerLat !== 0 || customerLon !== 0;
+      openMapModal(!hasSaved);
+    });
     document.getElementById("btn-close-map-modal").addEventListener("click", closeMapModal);
+    document.getElementById("btn-map-layer-toggle")?.addEventListener("click", () => {
+      mapLayerMode = mapLayerMode === "m" ? "y" : "m";
+      applyGoogleTileLayer();
+    });
     document.getElementById("btn-use-gps").addEventListener("click", () => detectGpsForTarget(false));
     document.getElementById("modal-btn-gps").addEventListener("click", () => detectGpsForTarget(true));
     document.getElementById("modal-btn-confirm").addEventListener("click", () => {
-      const prevAutoAddr = deliveryLocationFull;
-      setCustomerPin(draftLat, draftLon, draftTitle, draftAddress);
-      if (draftTitle) inpArea.value = draftTitle;
-      if (draftAddress && (!inpAddress.value.trim() || inpAddress.value.trim() === prevAutoAddr)) {
-        inpAddress.value = draftAddress;
-      }
-      saveCustomerProfile();
+      setCustomerPin(draftLat, draftLon, draftTitle, draftAddress, true);
       closeMapModal();
     });
 
@@ -1855,6 +2047,400 @@
       elMapSearchResults.classList.add("hidden");
       elMapSearchResults.innerHTML = "";
     });
+
+    // --- Mobile + 4-Digit PIN Auth & Trusted Device Helpers ---
+    function extractTenDigitMobile(raw) {
+      const digits = String(raw || "").replace(/\D/g, "");
+      if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+      if (digits.length > 10) return digits.slice(-10);
+      return digits;
+    }
+
+    function normalizePhoneKey(raw) {
+      const ten = extractTenDigitMobile(raw);
+      return /^[0-9]{10}$/.test(ten) ? "91" + ten : "";
+    }
+
+    function getOrCreateDeviceId() {
+      let did = localStorage.getItem("balaji_device_id");
+      if (!did || did.length < 8) {
+        did = "web-" + (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10)));
+        localStorage.setItem("balaji_device_id", did);
+      }
+      return did;
+    }
+
+    async function sha256Hex(str) {
+      const data = new TextEncoder().encode(str);
+      if (window.crypto && window.crypto.subtle) {
+        const buf = await window.crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+      // Minimal fallback should subtle crypto be unavailable on non-secure origins
+      const K = [
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+      ];
+      const bytes = Array.from(data);
+      const bitLen = bytes.length * 8;
+      bytes.push(0x80);
+      while ((bytes.length % 64) !== 56) bytes.push(0);
+      for (let i = 7; i >= 0; i--) bytes.push((bitLen / Math.pow(2, i * 8)) & 0xff);
+      let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+      const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+      for (let i = 0; i < bytes.length; i += 64) {
+        const W = new Array(64);
+        for (let t = 0; t < 16; t++) {
+          W[t] = (bytes[i + t * 4] << 24) | (bytes[i + t * 4 + 1] << 16) | (bytes[i + t * 4 + 2] << 8) | bytes[i + t * 4 + 3];
+        }
+        for (let t = 16; t < 64; t++) {
+          const s0 = rotr(W[t - 15], 7) ^ rotr(W[t - 15], 18) ^ (W[t - 15] >>> 3);
+          const s1 = rotr(W[t - 2], 17) ^ rotr(W[t - 2], 19) ^ (W[t - 2] >>> 10);
+          W[t] = (W[t - 16] + s0 + W[t - 7] + s1) | 0;
+        }
+        let [a, b, c, d, e, f, g, h] = H;
+        for (let t = 0; t < 64; t++) {
+          const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+          const ch = (e & f) ^ ((~e) & g);
+          const temp1 = (h + S1 + ch + K[t] + W[t]) | 0;
+          const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+          const maj = (a & b) ^ (a & c) ^ (b & c);
+          const temp2 = (S0 + maj) | 0;
+          h = g; g = f; f = e; e = (d + temp1) | 0; d = c; c = b; b = a; a = (temp1 + temp2) | 0;
+        }
+        H = H.map((v, idx) => (v + [a, b, c, d, e, f, g, h][idx]) | 0);
+      }
+      return H.map((v) => (v >>> 0).toString(16).padStart(8, "0")).join("");
+    }
+
+    function setAuthFormStatus(msg, isInfo = false) {
+      const el = document.getElementById("auth-form-status");
+      if (!el) return;
+      if (!msg) {
+        el.classList.add("hidden");
+        el.textContent = "";
+        return;
+      }
+      el.textContent = msg;
+      el.className = `alert ${isInfo ? "alert-info" : "alert-error"}`;
+      el.classList.remove("hidden");
+    }
+
+    function setActivePinTab(mode) {
+      setAuthFormStatus("");
+      document.getElementById("pin-tab-login")?.classList.toggle("active", mode === "login");
+      document.getElementById("pin-tab-register")?.classList.toggle("active", mode === "register");
+      document.getElementById("pin-tab-forgot")?.classList.toggle("active", mode === "forgot");
+      document.getElementById("panel-pin-login")?.classList.toggle("hidden", mode !== "login");
+      document.getElementById("panel-pin-register")?.classList.toggle("hidden", mode !== "register");
+      document.getElementById("panel-pin-forgot")?.classList.toggle("hidden", mode !== "forgot");
+    }
+
+    document.getElementById("pin-tab-login")?.addEventListener("click", () => setActivePinTab("login"));
+    document.getElementById("pin-tab-register")?.addEventListener("click", () => setActivePinTab("register"));
+    document.getElementById("pin-tab-forgot")?.addEventListener("click", () => setActivePinTab("forgot"));
+
+    function applyCustomerSavedLocation(savedLoc) {
+      if (!savedLoc) return;
+      const lat = Number(savedLoc.lat || 0) || 0;
+      const lng = Number(savedLoc.lng || 0) || 0;
+      if (lat === 0 && lng === 0) return;
+      customerLat = lat;
+      customerLon = lng;
+      if (savedLoc.title) deliveryLocationTitle = savedLoc.title;
+      if (savedLoc.address) deliveryLocationFull = savedLoc.address;
+      if (savedLoc.area) inpArea.value = savedLoc.area;
+      else if (savedLoc.title && !inpArea.value.trim()) inpArea.value = savedLoc.title;
+      if (savedLoc.address) inpAddress.value = savedLoc.address;
+      saveCustomerProfile();
+      updateTotalsUI();
+    }
+
+    function renderCustomerSessionUI() {
+      const bar = document.getElementById("customer-session-bar");
+      const forms = document.getElementById("customer-auth-forms");
+      const titleEl = document.getElementById("session-user-title");
+      const subEl = document.getElementById("session-user-sub");
+      if (customerSession) {
+        bar?.classList.remove("hidden");
+        forms?.classList.add("hidden");
+        if (titleEl) titleEl.textContent = `${customerSession.name} (${customerSession.mobile})`;
+        if (subEl) subEl.textContent = "Trusted Device active — no PIN needed next time";
+        elBtnAuth.textContent = `${customerSession.name.split(" ")[0]} • Logout`;
+        if (!inpShop.value.trim()) inpShop.value = customerSession.name;
+        if (!inpOwner.value.trim()) inpOwner.value = customerSession.name;
+        if (!inpPhone.value.trim()) inpPhone.value = customerSession.mobile;
+      } else {
+        bar?.classList.add("hidden");
+        forms?.classList.remove("hidden");
+        elBtnAuth.textContent = currentUser ? "Signed In • Logout" : "PIN Login";
+      }
+      renderLiveOrders();
+    }
+
+    function maybePromptFirstTimeLocation() {
+      if (firstLocationPrompted) return;
+      if (customerLat !== 0 || customerLon !== 0) return;
+      firstLocationPrompted = true;
+      setTimeout(() => {
+        if (customerLat === 0 && customerLon === 0 && document.getElementById("map-picker-modal")?.classList.contains("hidden")) {
+          openMapModal(true);
+        }
+      }, 350);
+    }
+
+    async function verifyTrustedDeviceOnBoot() {
+      try {
+        const stored = JSON.parse(localStorage.getItem("balaji_customer_session") || "null");
+        if (!stored?.phoneKey) {
+          renderCustomerSessionUI();
+          return;
+        }
+        const deviceId = getOrCreateDeviceId();
+        const snap = await getDoc(doc(db, "customers", stored.phoneKey));
+        if (!snap.exists()) {
+          localStorage.removeItem("balaji_customer_session");
+          customerSession = null;
+          renderCustomerSessionUI();
+          return;
+        }
+        const data = snap.data();
+        const trusted = Array.isArray(data.trustedDevices) ? data.trustedDevices : [];
+        if (!trusted.includes(deviceId)) {
+          // New device/browser or logged out remotely -> ask for PIN
+          localStorage.removeItem("balaji_customer_session");
+          customerSession = null;
+          const loginMob = document.getElementById("login-mobile");
+          if (loginMob && data.mobile) loginMob.value = data.mobile;
+          setAuthFormStatus("Is browser/mobile par pehli baar aaye hain. Kripya apna 4-digit PIN daalein.", true);
+          renderCustomerSessionUI();
+          return;
+        }
+        customerSession = {
+          phoneKey: data.phoneKey,
+          mobile: data.mobile,
+          name: data.name || stored.name || "Customer"
+        };
+        localStorage.setItem("balaji_customer_session", JSON.stringify(customerSession));
+        if (data.savedLocation) {
+          applyCustomerSavedLocation(data.savedLocation);
+        } else {
+          maybePromptFirstTimeLocation();
+        }
+        renderCustomerSessionUI();
+        subscribeMyOrders();
+      } catch (err) {
+        console.warn("Trusted device check error:", err?.message || err);
+        renderCustomerSessionUI();
+      }
+    }
+
+    document.getElementById("btn-pin-register")?.addEventListener("click", async () => {
+      setAuthFormStatus("");
+      const mob = extractTenDigitMobile(document.getElementById("reg-mobile")?.value);
+      const name = String(document.getElementById("reg-name")?.value || "").trim().slice(0, 100);
+      const pin = String(document.getElementById("reg-pin")?.value || "").trim();
+      const phoneKey = normalizePhoneKey(mob);
+      if (!phoneKey) {
+        setAuthFormStatus("Sahi 10-ankon ka mobile number daalein.");
+        return;
+      }
+      if (!name) {
+        setAuthFormStatus("Customer / Shop ka naam daalein.");
+        return;
+      }
+      if (!/^[0-9]{4}$/.test(pin)) {
+        setAuthFormStatus("4-ankon ka numeric PIN banayein (e.g. 1234).");
+        return;
+      }
+      const btn = document.getElementById("btn-pin-register");
+      btn.disabled = true;
+      btn.textContent = "Creating...";
+      try {
+        const custRef = doc(db, "customers", phoneKey);
+        const existingSnap = await getDoc(custRef);
+        const pinHash = await sha256Hex(`${phoneKey}:${pin}`);
+        const deviceId = getOrCreateDeviceId();
+        if (existingSnap.exists()) {
+          const ex = existingSnap.data();
+          if (ex.pinHash === pinHash) {
+            await updateDoc(custRef, {
+              name: name || ex.name,
+              distributorUid: distributorUid || ex.distributorUid || "",
+              trustedDevices: arrayUnion(deviceId),
+              updatedAt: serverTimestamp()
+            });
+            customerSession = { phoneKey, mobile: mob, name: name || ex.name };
+            localStorage.setItem("balaji_customer_session", JSON.stringify(customerSession));
+            if (ex.savedLocation) applyCustomerSavedLocation(ex.savedLocation);
+            else maybePromptFirstTimeLocation();
+            renderCustomerSessionUI();
+            subscribeMyOrders();
+            return;
+          }
+          setAuthFormStatus("Yeh mobile number pehle se registered hai. PIN Login tab se login karein.");
+          setActivePinTab("login");
+          document.getElementById("login-mobile").value = mob;
+          return;
+        }
+        const savedLoc = (customerLat !== 0 || customerLon !== 0) ? {
+          title: deliveryLocationTitle.slice(0, 120),
+          area: inpArea.value.trim().slice(0, 100),
+          address: (deliveryLocationFull || inpAddress.value.trim()).slice(0, 250),
+          lat: customerLat,
+          lng: customerLon
+        } : null;
+        await setDoc(custRef, {
+          phoneKey,
+          mobile: mob,
+          name,
+          pinHash,
+          distributorUid: distributorUid || "",
+          trustedDevices: [deviceId],
+          savedLocation: savedLoc,
+          resetRequested: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        customerSession = { phoneKey, mobile: mob, name };
+        localStorage.setItem("balaji_customer_session", JSON.stringify(customerSession));
+        renderCustomerSessionUI();
+        subscribeMyOrders();
+        maybePromptFirstTimeLocation();
+      } catch (err) {
+        setAuthFormStatus("Register failed: " + (err.message || "Try again."));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account & Login";
+      }
+    });
+
+    document.getElementById("btn-pin-login")?.addEventListener("click", async () => {
+      setAuthFormStatus("");
+      const mob = extractTenDigitMobile(document.getElementById("login-mobile")?.value);
+      const pin = String(document.getElementById("login-pin")?.value || "").trim();
+      const phoneKey = normalizePhoneKey(mob);
+      if (!phoneKey) {
+        setAuthFormStatus("Sahi 10-ankon ka mobile number daalein.");
+        return;
+      }
+      if (!/^[0-9]{4}$/.test(pin)) {
+        setAuthFormStatus("4-ankon ka PIN daalein.");
+        return;
+      }
+      const btn = document.getElementById("btn-pin-login");
+      btn.disabled = true;
+      btn.textContent = "Logging in...";
+      try {
+        const custRef = doc(db, "customers", phoneKey);
+        const snap = await getDoc(custRef);
+        if (!snap.exists()) {
+          setAuthFormStatus("Is mobile number ka account nahi mila. New Register tab se account banayein.");
+          return;
+        }
+        const data = snap.data();
+        const pinHash = await sha256Hex(`${phoneKey}:${pin}`);
+        if (data.pinHash !== pinHash) {
+          setAuthFormStatus("Galat 4-digit PIN! Sahi PIN daalein ya Forgot PIN use karein.");
+          return;
+        }
+        const deviceId = getOrCreateDeviceId();
+        await updateDoc(custRef, {
+          distributorUid: distributorUid || data.distributorUid || "",
+          trustedDevices: arrayUnion(deviceId),
+          updatedAt: serverTimestamp()
+        });
+        customerSession = {
+          phoneKey,
+          mobile: data.mobile || mob,
+          name: data.name || "Customer"
+        };
+        localStorage.setItem("balaji_customer_session", JSON.stringify(customerSession));
+        document.getElementById("login-pin").value = "";
+        if (data.savedLocation) {
+          applyCustomerSavedLocation(data.savedLocation);
+        } else {
+          maybePromptFirstTimeLocation();
+        }
+        renderCustomerSessionUI();
+        subscribeMyOrders();
+      } catch (err) {
+        setAuthFormStatus("Login failed: " + (err.message || "Try again."));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Login with PIN";
+      }
+    });
+
+    document.getElementById("btn-forgot-pin")?.addEventListener("click", async () => {
+      setAuthFormStatus("");
+      const mob = extractTenDigitMobile(document.getElementById("forgot-mobile")?.value);
+      const phoneKey = normalizePhoneKey(mob);
+      if (!phoneKey) {
+        setAuthFormStatus("Kripya sahi 10-ankon ka mobile number daalein.");
+        return;
+      }
+      const distId = distributorUid || "";
+      if (!distId) {
+        setAuthFormStatus("Distributor Code missing hai. QR scan ya code load karein.");
+        return;
+      }
+      const btn = document.getElementById("btn-forgot-pin");
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      try {
+        let lookedUpName = "";
+        const custRef = doc(db, "customers", phoneKey);
+        const custSnap = await getDoc(custRef);
+        if (custSnap.exists()) {
+          lookedUpName = String(custSnap.data()?.name || "").slice(0, 100);
+          await updateDoc(custRef, {
+            resetRequested: true,
+            updatedAt: serverTimestamp()
+          });
+        }
+        await setDoc(doc(db, "pin_reset_requests", phoneKey), {
+          phoneKey,
+          mobile: mob,
+          customerName: lookedUpName,
+          distributorUid: distId,
+          status: "pending",
+          requestedAt: serverTimestamp(),
+          resolvedAt: null
+        });
+        setAuthFormStatus("PIN reset request Distributor ko bhej di gayi hai. Naya 4-digit PIN set hone par login karein.", true);
+      } catch (err) {
+        setAuthFormStatus("Request failed: " + (err.message || "Try again."));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Send PIN Reset Request";
+      }
+    });
+
+    async function logoutCustomerSession() {
+      const prev = customerSession;
+      const deviceId = getOrCreateDeviceId();
+      customerSession = null;
+      localStorage.removeItem("balaji_customer_session");
+      renderCustomerSessionUI();
+      subscribeMyOrders();
+      if (prev?.phoneKey) {
+        try {
+          await updateDoc(doc(db, "customers", prev.phoneKey), {
+            trustedDevices: arrayRemove(deviceId),
+            updatedAt: serverTimestamp()
+          });
+        } catch (_) {}
+      }
+    }
+
+    document.getElementById("btn-customer-logout")?.addEventListener("click", logoutCustomerSession);
 
     function restoreSavedProfile() {
       try {
@@ -1969,14 +2555,28 @@
     }
 
     elBtnAuth.addEventListener("click", async () => {
-      if (currentUser) {
+      if (customerSession) {
+        await logoutCustomerSession();
+      } else if (currentUser) {
         await signOut(auth);
       } else {
-        await triggerGoogleSignIn(false);
+        switchTab("order");
+        document.getElementById("customer-auth-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById("login-mobile")?.focus();
       }
     });
 
-    document.getElementById("btn-live-signin").addEventListener("click", () => triggerGoogleSignIn(false));
+    document.getElementById("btn-live-signin").addEventListener("click", () => {
+      switchTab("order");
+      document.getElementById("customer-auth-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("login-mobile")?.focus();
+    });
+
+    document.getElementById("btn-switch-dist")?.addEventListener("click", () => {
+      elDistPicker.classList.remove("hidden");
+      document.getElementById("manual-dist-input").value = distributorUid || "";
+      elDistPicker.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
 
     document.getElementById("btn-load-dist").addEventListener("click", () => {
       const code = document.getElementById("manual-dist-input").value.trim();
@@ -2155,10 +2755,33 @@
       document.getElementById("store-meta-chips").innerHTML = chips.join("");
     }
 
+    function handleStoreSnapshot(snap) {
+      if (storeLoadTimer) {
+        clearTimeout(storeLoadTimer);
+        storeLoadTimer = null;
+      }
+      clearAlert();
+      if (!snap.exists()) {
+        storeData = null;
+        document.getElementById("store-name").textContent = "Store Not Synced Yet";
+        elSkuList.innerHTML = `<p class="muted">Ask your Distributor Owner to open the Balaji app once so their SKU catalog syncs.</p>`;
+        renderCatalog();
+        return;
+      }
+      storeData = snap.data();
+      applyStoreHeader(storeData);
+      initOrUpdateMap();
+      renderCatalog();
+    }
+
     function subscribeStore() {
       if (unsubStore) {
         unsubStore();
         unsubStore = null;
+      }
+      if (storeLoadTimer) {
+        clearTimeout(storeLoadTimer);
+        storeLoadTimer = null;
       }
       if (!distributorUid) {
         elDistPicker.classList.remove("hidden");
@@ -2169,22 +2792,39 @@
 
       localStorage.setItem("balaji_last_dist", distributorUid);
       const storeRef = doc(db, "public_stores", distributorUid);
+      elSkuList.innerHTML = `<p class="muted">Loading Bisleri SKUs...</p>`;
 
-      unsubStore = onSnapshot(storeRef, (snap) => {
-        clearAlert();
-        if (!snap.exists()) {
-          storeData = null;
-          document.getElementById("store-name").textContent = "Store Not Synced Yet";
-          elSkuList.innerHTML = `<p class="muted">Ask your Distributor Owner to open the Balaji app once so their SKU catalog syncs.</p>`;
-          renderCatalog();
-          return;
+      storeLoadTimer = setTimeout(() => {
+        if (storeData === null) {
+          elSkuList.innerHTML = `
+            <p class="muted">Network slow hai ya SKUs load hone me time lag raha hai.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-retry-store">Retry Loading SKUs</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-open-dist-picker">Change Store Code</button>
+            </div>
+          `;
+          document.getElementById("btn-retry-store")?.addEventListener("click", subscribeStore);
+          document.getElementById("btn-open-dist-picker")?.addEventListener("click", () => {
+            elDistPicker.classList.remove("hidden");
+            elDistPicker.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
         }
-        storeData = snap.data();
-        applyStoreHeader(storeData);
-        initOrUpdateMap();
-        renderCatalog();
-      }, (err) => {
+      }, 8000);
+
+      getDoc(storeRef)
+        .then((snap) => {
+          if (storeData === null) handleStoreSnapshot(snap);
+        })
+        .catch(() => {});
+
+      unsubStore = onSnapshot(storeRef, handleStoreSnapshot, (err) => {
+        if (storeLoadTimer) {
+          clearTimeout(storeLoadTimer);
+          storeLoadTimer = null;
+        }
         showAlert("Could not load distributor SKUs: " + err.message);
+        elSkuList.innerHTML = `<button type="button" class="btn btn-outline btn-sm" id="btn-retry-store-err">Retry Loading SKUs</button>`;
+        document.getElementById("btn-retry-store-err")?.addEventListener("click", subscribeStore);
       });
     }
 
@@ -2291,7 +2931,7 @@
       const signinCard = document.getElementById("live-signin-card");
       const container = document.getElementById("live-panel-container");
 
-      if (!currentUser) {
+      if (!customerSession && !currentUser) {
         signinCard.classList.remove("hidden");
         container.innerHTML = "";
         elLiveBadge.classList.add("hidden");
@@ -2406,16 +3046,16 @@
         unsubOrders();
         unsubOrders = null;
       }
-      if (!currentUser || !distributorUid) {
+      const phoneKey = customerSession?.phoneKey || "";
+      if (!distributorUid || (!phoneKey && !currentUser)) {
         myOrders = [];
         renderLiveOrders();
         return;
       }
 
-      const q = query(
-        collection(db, "users", distributorUid, "online_orders"),
-        where("customerAuthUid", "==", currentUser.uid)
-      );
+      const q = phoneKey
+        ? query(collection(db, "users", distributorUid, "online_orders"), where("customerPhone", "==", phoneKey))
+        : query(collection(db, "users", distributorUid, "online_orders"), where("customerAuthUid", "==", currentUser.uid));
 
       unsubOrders = onSnapshot(q, (snap) => {
         const list = [];
@@ -2435,10 +3075,12 @@
         return;
       }
       const shopName = inpShop.value.trim().slice(0, 100);
-      const customerPhone = inpPhone.value.trim().slice(0, 20);
-      const customerName = inpOwner.value.trim().slice(0, 80);
+      const rawPhone = inpPhone.value.trim() || customerSession?.mobile || "";
+      const phoneKey = customerSession?.phoneKey || normalizePhoneKey(rawPhone);
+      const customerPhone = (phoneKey || rawPhone).slice(0, 20);
+      const customerName = (inpOwner.value.trim() || customerSession?.name || shopName).slice(0, 80);
       const area = inpArea.value.trim().slice(0, 80);
-      const address = inpAddress.value.trim().slice(0, 200);
+      const address = (inpAddress.value.trim() || deliveryLocationFull).slice(0, 250);
       const notes = inpNotes.value.trim().slice(0, 300);
       const items = computeOrderItems();
 
@@ -2447,8 +3089,8 @@
         inpShop.focus();
         return;
       }
-      if (customerPhone.replace(/\D/g, "").length < 6) {
-        showAlert("Please enter a valid Mobile Number (minimum 6 digits).");
+      if (customerPhone.replace(/\D/g, "").length < 10) {
+        showAlert("Please enter a valid 10-digit Mobile Number.");
         inpPhone.focus();
         return;
       }
@@ -2486,10 +3128,8 @@
       const finalNotes = [notes, mapTag].filter(Boolean).join(" • ").slice(0, 300);
 
       saveCustomerProfile();
-
-      if (!currentUser) {
-        const user = await triggerGoogleSignIn(true);
-        if (!user) return; // redirect started or user cancelled
+      if (customerSession?.phoneKey && (customerLat !== 0 || customerLon !== 0)) {
+        persistSavedLocationToCustomer(customerLat, customerLon, deliveryLocationTitle || area, address);
       }
 
       elBtnSubmit.disabled = true;
@@ -2501,12 +3141,14 @@
         const totalAmount = subtotal + gstAmount;
 
         const payload = {
-          customerAuthUid: auth.currentUser.uid,
+          customerAuthUid: auth.currentUser?.uid || "",
           shopName,
           customerName,
           customerPhone,
           area,
           address,
+          deliveryLat: Number(customerLat) || 0,
+          deliveryLng: Number(customerLon) || 0,
           items: finalItems.map(({ productId, productName, unitLabel, qty, rate, gstPercent, lineTotal }) => ({
             productId, productName, unitLabel, qty, rate, gstPercent, lineTotal
           })),
@@ -2546,6 +3188,7 @@
     initOrUpdateMap(false);
     updateTotalsUI();
     subscribeStore();
+    verifyTrustedDeviceOnBoot();
 
     getRedirectResult(auth).catch((err) => {
       if (err && err.code !== "auth/no-auth-event") {
@@ -2555,15 +3198,7 @@
 
     onAuthStateChanged(auth, async (user) => {
       currentUser = user || null;
-      if (currentUser) {
-        const label = currentUser.displayName ? currentUser.displayName.split(" ")[0] : "Signed In";
-        elBtnAuth.textContent = `${label} • Sign out`;
-        if (!inpOwner.value && currentUser.displayName) {
-          inpOwner.value = currentUser.displayName;
-        }
-      } else {
-        elBtnAuth.textContent = "Google Sign in";
-      }
+      renderCustomerSessionUI();
       subscribeMyOrders();
 
       if (currentUser && pendingAutoSubmit) {
